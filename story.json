@@ -1,0 +1,194 @@
+
+{
+  "id": "nexus_horror_labyrinth",
+  "name": "NEXUS HORROR: Labyrinth of Broken Time",
+  "description": "Сайфай-хоррор с временными петлями на заброшенной станции. Игрок должен раскрыть тайну, управляя отношениями с выжившими и последствиями своих выборов.",
+  "startSceneId": "wake_up",
+  "scenes": [
+    {
+      "id": "wake_up",
+      "title": "Пробуждение в капсуле",
+      "content": "Холодный искусственный воздух обжигает легкие. Вы приходите в себя в аварийной криокапсуле. Стекло покрыто инеем, сквозь него видны лишь мигающие аварийные огни и силуэты разбросанных обломков. В ушах звенит. Голос в комлинке, искаженный помехами, пытается что-то сказать: '...активирован протокол 'Лабиринт'... повторяю... не доверяй...' и обрывается. Вы с силой отпираете заклинивший замок.\n\nПеред вами лежит стандартный мультитул станции 'Нексус'. Напротив, у другого разбитого модуля, шевелится фигура в потрепанном скафандре. Это **Лиана**, геолог экспедиции. Она в панике пытается починить свой комлинк.",
+      "type": "choice",
+      "backgroundUrl": "https://images.unsplash.com/photo-1534447677768-be436bb09401",
+      "choices": [
+        {
+          "id": "c_wake_1",
+          "text": "Молча взять мультитул и осмотреться.",
+          "conditions": [],
+          "logicOperator": "AND",
+          "actions": [
+            { "id": "a_w1", "type": "give_item", "targetId": "multitool" },
+            { "id": "a_w2", "type": "change_scene", "targetId": "corridor" }
+          ],
+          "elseActions": []
+        },
+        {
+          "id": "c_wake_2",
+          "text": "Подойти к Лиане, предложить помощь.",
+          "conditions": [
+            { "id": "cond_w1", "type": "variable", "targetId": "liana_relation", "operator": "gt", "value": -20 }
+          ],
+          "logicOperator": "AND",
+          "actions": [
+            { "id": "a_w3", "type": "mod_variable", "targetId": "liana_relation", "value": 10 },
+            { "id": "a_w4", "type": "change_scene", "targetId": "help_liana" }
+          ],
+          "elseActions": []
+        },
+        {
+          "id": "c_wake_3",
+          "text": "Резко спросить о протоколе 'Лабиринт'.",
+          "conditions": [],
+          "logicOperator": "AND",
+          "actions": [
+            { "id": "a_w5", "type": "mod_variable", "targetId": "liana_relation", "value": -15 },
+            { "id": "a_w7", "type": "change_scene", "targetId": "demand_liana" }
+          ],
+          "elseActions": []
+        }
+      ],
+      "rules": [],
+      "tags": ["start", "tutorial"],
+      "position": { "x": 100, "y": 100 }
+    },
+    {
+      "id": "corridor",
+      "title": "Разрушенный коридор",
+      "content": "Вы в главном коридоре сектора А. Освещение мигает. Стены испещрены царапинами, словно здесь дрались машины. В конце коридора видна дверь в **Медблок**, но она заблокирована красным аварийным светом. Рядом аварийный терминал. Справа — вход в **Хранилище данных**, дверь приоткрыта. Слева — **технический люк**, ведущий в вентиляционную шахту.",
+      "type": "choice",
+      "backgroundUrl": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64",
+      "choices": [
+        {
+          "id": "c_corr_1",
+          "text": "Попытаться взломать терминал Медблока.",
+          "conditions": [
+            { "id": "cond_c1", "type": "item", "targetId": "multitool", "operator": "has" }
+          ],
+          "logicOperator": "AND",
+          "actions": [
+            { "id": "a_c1", "type": "remove_item", "targetId": "multitool" },
+            { "id": "a_c2", "type": "change_scene", "targetId": "medbay_door" }
+          ],
+          "elseActions": []
+        },
+        {
+          "id": "c_corr_2",
+          "text": "Осмотреть Хранилище данных.",
+          "conditions": [],
+          "logicOperator": "AND",
+          "actions": [
+            { "id": "a_c3", "type": "change_scene", "targetId": "data_vault" }
+          ],
+          "elseActions": []
+        },
+        {
+          "id": "c_corr_3",
+          "text": "Залезть в технический люк (ОДИН).",
+          "conditions": [
+            { "id": "cond_c2", "type": "variable", "targetId": "companion_liana", "operator": "eq", "value": false }
+          ],
+          "logicOperator": "AND",
+          "actions": [
+            { "id": "a_c4", "type": "change_scene", "targetId": "vent_shaft" }
+          ],
+          "elseActions": []
+        }
+      ],
+      "rules": [],
+      "tags": ["hub"],
+      "position": { "x": 350, "y": 100 }
+    },
+    {
+      "id": "help_liana",
+      "title": "Помощь Лиане",
+      "content": "Лиана смотрит на вас запавшими глазами. 'Спасибо... Я думала, я одна'. Вы помогаете ей починить комлинк. Из динамика доносится чистый, без помех, голос ИИ станции 'Архон': 'Добро пожаловать в активационный цикл, существа. Цель: выжить. Вероятность успеха: 3.7%'.\n\n**Вы получаете Карту доступа 2-го уровня.**",
+      "type": "choice",
+      "backgroundUrl": "https://images.unsplash.com/photo-1518709268805-4e9042af2176",
+      "choices": [
+        {
+          "id": "c_hl_1",
+          "text": "'Пойдем вместе. Будет безопаснее'.",
+          "conditions": [],
+          "logicOperator": "AND",
+          "actions": [
+            { "id": "a_hl1", "type": "join_party", "targetId": "liana" },
+            { "id": "a_hl2", "type": "mod_variable", "targetId": "companion_liana", "value": true },
+            { "id": "a_hl3", "type": "mod_variable", "targetId": "liana_relation", "value": 25 },
+            { "id": "a_hl4", "type": "give_item", "targetId": "access_card_2" },
+            { "id": "a_hl5", "type": "change_scene", "targetId": "corridor" }
+          ],
+          "elseActions": []
+        }
+      ],
+      "rules": [],
+      "tags": ["character"],
+      "position": { "x": 100, "y": 300 }
+    }
+  ],
+  "characters": [
+    {
+      "id": "liana",
+      "name": "Лиана Корсакова",
+      "role": "Геолог экспедиции",
+      "description": "Паническая, но добрая. Знает больше о станции, чем показывает. Ее доверие хрупко.",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Liana",
+      "initialRelationship": 0,
+      "traits": {},
+      "relationships": {},
+      "triggers": [],
+      "colorTag": "#f43f5e"
+    }
+  ],
+  "items": [
+    {
+      "id": "multitool",
+      "name": "Мультитул инженера",
+      "icon": "🔧",
+      "description": "Стандартный инструмент для ремонта и взлома систем.",
+      "category": "weapon",
+      "rarity": "common",
+      "weight": 1,
+      "value": 50,
+      "isUsable": true,
+      "isConsumable": false,
+      "isDiscardable": true,
+      "useConditions": [],
+      "useActions": []
+    }
+  ],
+  "quests": [
+    {
+      "id": "main_find_truth",
+      "name": "Сердце Лабиринта",
+      "description": "Выяснить, что такое протокол 'Лабиринт'.",
+      "icon": "📜",
+      "startConditions": [],
+      "onStartActions": [],
+      "onCompleteActions": [],
+      "onFailActions": [],
+      "stages": [
+        { "id": "q1_s1", "title": "Узнать о 'Лабиринте'", "description": "Поговорите с выжившими.", "type": "dialogue", "conditions": [], "completionActions": [], "nextStageIds": [] }
+      ],
+      "initialStageIds": ["q1_s1"]
+    }
+  ],
+  "variables": [
+    { "id": "liana_relation", "name": "Отношение Лианы", "type": "number", "defaultValue": 0, "priority": 1, "isTemporary": false, "resetAfterScenes": 0, "dependencies": [] },
+    { "id": "companion_liana", "name": "Лиана в отряде", "type": "boolean", "defaultValue": false, "priority": 1, "isTemporary": false, "resetAfterScenes": 0, "dependencies": [] },
+    { "id": "sanity", "name": "Рассудок", "type": "number", "defaultValue": 100, "priority": 1, "isTemporary": false, "resetAfterScenes": 0, "dependencies": [] }
+  ],
+  "variableGroups": [],
+  "settings": {
+    "isPublished": false,
+    "autosaveEnabled": true,
+    "autosaveInterval": 5,
+    "editorFontSize": 14,
+    "editorTheme": "dark",
+    "defaultLanguage": "ru",
+    "hudInventoryEnabled": true,
+    "hudCompanionsEnabled": true,
+    "hudQuestsEnabled": true,
+    "hudSettingsEnabled": true
+  }
+}
