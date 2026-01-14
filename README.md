@@ -20,6 +20,7 @@ Visual Generative Engine: Создание атмосферных фонов и 
 Кинематографичный интерфейс: Эффект печатающегося текста, поддержка эмбиент-звука и визуальных эффектов.
 Интеллектуальный HUD: Динамические окна инвентаря, группы и журнала квестов, доступные игроку в реальном времени.
 Система Сохранений: Встроенная поддержка быстрых сохранений (QuickSave/QuickLoad) через IndexedDB.
+
 🌌 XenoX Forge v2.5 PRO: Professional Interactive Storytelling Engine
 XenoX Forge is a high-end Integrated Development Environment (IDE) tailored for narrative designers and interactive fiction creators. It bridges the gap between visual design and complex logic, offering a seamless experience from the first draft to the final release.
 ✨ Core Features
