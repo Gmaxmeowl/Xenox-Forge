@@ -11,19 +11,27 @@ import {
 } from 'lucide-react';
 
 const VariablesEditor: React.FC = () => {
-  const { 
-    project, selectedVariableId, selectVariable, addVariable, updateVariable, 
-    deleteVariable, addVariableGroup, updateVariableGroup, deleteVariableGroup, language 
-  } = useStore();
+  const variables = useStore(s => s.project.variables);
+  const variableGroups = useStore(s => s.project.variableGroups);
+  const selectedVariableId = useStore(s => s.selectedVariableId);
+  const selectVariable = useStore(s => s.selectVariable);
+  const addVariable = useStore(s => s.addVariable);
+  const updateVariable = useStore(s => s.updateVariable);
+  const deleteVariable = useStore(s => s.deleteVariable);
+  const addVariableGroup = useStore(s => s.addVariableGroup);
+  const updateVariableGroup = useStore(s => s.updateVariableGroup);
+  const deleteVariableGroup = useStore(s => s.deleteVariableGroup);
+  const language = useStore(s => s.language);
+
   const t = translations[language].variablesEditor;
   
-  const v = project.variables.find(item => item.id === selectedVariableId);
+  const v = variables.find(item => item.id === selectedVariableId);
   const [filterType, setFilterType] = useState<'all' | VariableValueType>('all');
   const [searchQuery, setSearchQuery] = useState('');
   
   // Expanded states
   const [isAllVarsExpanded, setIsAllVarsExpanded] = useState(true);
-  const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(new Set(project.variableGroups.map(g => g.id)));
+  const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(new Set(variableGroups.map(g => g.id)));
   
   const toggleGroup = (id: string) => {
     const next = new Set(expandedGroupIds);
@@ -33,7 +41,7 @@ const VariablesEditor: React.FC = () => {
 
   const createVariableInGroup = (groupId?: string) => {
     // We call addVariable and then update it with the groupId if provided
-    const beforeIds = project.variables.map(iv => iv.id);
+    const beforeIds = variables.map(iv => iv.id);
     addVariable();
     setTimeout(() => {
       // Find the one that wasn't there before
@@ -45,7 +53,7 @@ const VariablesEditor: React.FC = () => {
     }, 50);
   };
 
-  const filteredVars = project.variables.filter(item => {
+  const filteredVars = variables.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = filterType === 'all' || item.type === filterType;
     return matchesSearch && matchesType;
@@ -84,7 +92,7 @@ const VariablesEditor: React.FC = () => {
                >
                  <ChevronDown size={14} className={`transition-transform duration-300 ${isAllVarsExpanded ? '' : '-rotate-90 text-slate-700'}`} />
                  <List size={14} className="text-indigo-500/50 group-hover:text-indigo-500" />
-                 Все данные <span className="ml-auto text-[9px] text-slate-700">{project.variables.length}</span>
+                 Все данные <span className="ml-auto text-[9px] text-slate-700">{variables.length}</span>
                </button>
                {isAllVarsExpanded && (
                  <div className="space-y-0.5 ml-4">
@@ -110,7 +118,7 @@ const VariablesEditor: React.FC = () => {
                   <button onClick={addVariableGroup} className="text-indigo-400 hover:text-white"><FolderPlus size={14} /></button>
                </div>
                
-               {project.variableGroups.map(group => {
+               {variableGroups.map(group => {
                   const groupVars = filteredVars.filter(v_item => v_item.groupId === group.id);
                   const isExpanded = expandedGroupIds.has(group.id);
                   return (
@@ -165,7 +173,7 @@ const VariablesEditor: React.FC = () => {
 
              <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-4 pb-20">
                 {filteredVars.map(item => {
-                   const group = project.variableGroups.find(g => g.id === item.groupId);
+                   const group = variableGroups.find(g => g.id === item.groupId);
                    return (
                     <div 
                       key={item.id} 
@@ -237,7 +245,7 @@ const VariablesEditor: React.FC = () => {
                               className="bg-slate-900 border border-slate-800 rounded-lg px-4 py-1 text-[10px] font-black text-slate-500 uppercase outline-none shadow-inner"
                             >
                                <option value="">Без категории</option>
-                               {project.variableGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                               {variableGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
                             </select>
                          </div>
                       </div>
@@ -304,7 +312,7 @@ const VariablesEditor: React.FC = () => {
                                    className="flex-1 bg-slate-900 text-[10px] font-bold text-slate-300 p-2 rounded-lg outline-none border border-slate-800"
                                  >
                                     <option value="">Выберите данную...</option>
-                                    {project.variables.filter(pv => pv.id !== v.id).map(pv => <option key={pv.id} value={pv.id}>{pv.name}</option>)}
+                                    {variables.filter(pv => pv.id !== v.id).map(pv => <option key={pv.id} value={pv.id}>{pv.name}</option>)}
                                  </select>
                                  <button 
                                    onClick={() => updateVariable(v.id, { dependencies: v.dependencies.filter((_, i) => i !== di) })} 

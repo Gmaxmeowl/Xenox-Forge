@@ -9,15 +9,24 @@ import {
 import { getPollinationsUrl } from '../../pollinations.ts';
 
 const CharacterEditor: React.FC = () => {
-  const { project, selectedCharacterId, addCharacter, updateCharacter, deleteCharacter, selectCharacter, language, updateSettings } = useStore();
+  const characters = useStore(s => s.project.characters);
+  const hudCompanionsEnabled = useStore(s => s.project.settings.hudCompanionsEnabled);
+  const selectedCharacterId = useStore(s => s.selectedCharacterId);
+  const addCharacter = useStore(s => s.addCharacter);
+  const updateCharacter = useStore(s => s.updateCharacter);
+  const deleteCharacter = useStore(s => s.deleteCharacter);
+  const selectCharacter = useStore(s => s.selectCharacter);
+  const language = useStore(s => s.language);
+  const updateSettings = useStore(s => s.updateSettings);
+
   const t = translations[language].editor;
   
   const [searchQuery, setSearchQuery] = useState('');
-  const char = project.characters.find(c => c.id === selectedCharacterId);
+  const char = characters.find(c => c.id === selectedCharacterId);
   const [expandedTriggerId, setExpandedTriggerId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const filteredCharacters = project.characters.filter(c => 
+  const filteredCharacters = characters.filter(c =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     c.role.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -50,7 +59,7 @@ const CharacterEditor: React.FC = () => {
     }
   };
 
-  if (project.characters.length === 0) {
+  if (characters.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-slate-600 bg-slate-950">
         <div className="p-12 border-2 border-dashed border-slate-800 rounded-3xl flex flex-col items-center max-w-sm text-center">
@@ -95,7 +104,7 @@ const CharacterEditor: React.FC = () => {
       <div className="w-80 border-r border-slate-800 bg-slate-900/30 flex flex-col p-6 space-y-6">
         <div className="flex items-center justify-between">
           <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-            <Users size={14} /> Спутники ({project.characters.length})
+            <Users size={14} /> Спутники ({characters.length})
           </h3>
           <button onClick={addCharacter} className="text-indigo-400 hover:text-white transition-transform active:scale-90">
             <Plus size={16} />
@@ -107,7 +116,7 @@ const CharacterEditor: React.FC = () => {
               <span className="text-[9px] font-black text-slate-500 uppercase group-hover:text-indigo-400 transition-colors">Отображать в HUD</span>
               <input 
                 type="checkbox" 
-                checked={project.settings.hudCompanionsEnabled} 
+                checked={hudCompanionsEnabled}
                 onChange={e => updateSettings({ hudCompanionsEnabled: e.target.checked })}
                 className="w-3 h-3 rounded bg-slate-900 border-slate-700 text-indigo-500 focus:ring-0"
               />
@@ -349,7 +358,10 @@ const CharacterEditor: React.FC = () => {
                                     <ConditionRow 
                                       key={c.id} 
                                       condition={c} 
-                                      project={project}
+                                      characters={characters}
+                                      items={useStore.getState().project.items}
+                                      variables={useStore.getState().project.variables}
+                                      scenes={useStore.getState().project.scenes}
                                       characterId={char.id}
                                       onUpdate={(upd) => updateTrigger(trigger.id, { conditions: trigger.conditions.map(tc => tc.id === c.id ? { ...tc, ...upd } : tc) })}
                                       onRemove={() => updateTrigger(trigger.id, { conditions: trigger.conditions.filter(tc => tc.id !== c.id) })}
@@ -368,7 +380,8 @@ const CharacterEditor: React.FC = () => {
                                     <ActionRow 
                                       key={a.id} 
                                       action={a} 
-                                      project={project}
+                                      characters={characters}
+                                      items={useStore.getState().project.items}
                                       onUpdate={(upd) => updateTrigger(trigger.id, { actions: trigger.actions.map(ta => ta.id === a.id ? { ...ta, ...upd } : ta) })}
                                       onRemove={() => updateTrigger(trigger.id, { actions: trigger.actions.filter(ta => ta.id !== a.id) })}
                                     />
@@ -390,7 +403,7 @@ const CharacterEditor: React.FC = () => {
   );
 };
 
-const ConditionRow: React.FC<{ condition: RuleCondition, project: any, onUpdate: (u: any) => void, onRemove: () => void, characterId: string }> = ({ condition, project, onUpdate, onRemove, characterId }) => {
+const ConditionRow: React.FC<{ condition: RuleCondition, characters: any[], items: any[], variables: any[], scenes: any[], onUpdate: (u: any) => void, onRemove: () => void, characterId: string }> = ({ condition, characters, items, variables, scenes, onUpdate, onRemove, characterId }) => {
   return (
     <div className="flex items-center gap-2 p-2 bg-slate-800/50 border border-slate-700 rounded-lg group">
       <select 
@@ -410,10 +423,10 @@ const ConditionRow: React.FC<{ condition: RuleCondition, project: any, onUpdate:
       
       <select value={condition.targetId} onChange={(e) => onUpdate({ targetId: e.target.value })} className="flex-1 bg-slate-900 text-[9px] p-1 rounded outline-none truncate">
         <option value="">Цель...</option>
-        {condition.type === 'relationship' && project.characters.filter((c: any) => c.id !== characterId).map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        {condition.type === 'item' && project.items.map((i: any) => <option key={i.id} value={i.id}>{i.name}</option>)}
-        {condition.type === 'variable' && project.variables.map((v: any) => <option key={v.id} value={v.id}>{v.name}</option>)}
-        {condition.type === 'scene' && project.scenes.map((s: any) => <option key={s.id} value={s.id}>{s.title}</option>)}
+        {condition.type === 'relationship' && characters.filter((c: any) => c.id !== characterId).map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        {condition.type === 'item' && items.map((i: any) => <option key={i.id} value={i.id}>{i.name}</option>)}
+        {condition.type === 'variable' && variables.map((v: any) => <option key={v.id} value={v.id}>{v.name}</option>)}
+        {condition.type === 'scene' && scenes.map((s: any) => <option key={s.id} value={s.id}>{s.title}</option>)}
       </select>
 
       <OperatorSelector condition={condition} onUpdate={(op) => onUpdate({ operator: op })} />
@@ -437,7 +450,7 @@ const OperatorSelector: React.FC<{ condition: RuleCondition, onUpdate: (op: any)
    return <select value={condition.operator} onChange={e => onUpdate(e.target.value)} className="bg-slate-900 text-[9px] p-1 rounded outline-none w-10"><option value="gt">&gt;</option><option value="lt">&lt;</option><option value="eq">=</option></select>
 }
 
-const ActionRow: React.FC<{ action: RuleAction, project: any, onUpdate: (u: any) => void, onRemove: () => void }> = ({ action, project, onUpdate, onRemove }) => {
+const ActionRow: React.FC<{ action: RuleAction, characters: any[], items: any[], onUpdate: (u: any) => void, onRemove: () => void }> = ({ action, characters, items, onUpdate, onRemove }) => {
   return (
     <div className="flex items-center gap-2 p-2 bg-slate-800/50 border border-slate-700 rounded-lg group">
       <select value={action.type} onChange={(e) => onUpdate({ type: e.target.value as ActionType })} className="bg-slate-900 text-[9px] font-bold text-slate-300 p-1 rounded outline-none w-24">
@@ -449,7 +462,7 @@ const ActionRow: React.FC<{ action: RuleAction, project: any, onUpdate: (u: any)
       </select>
       <select value={action.targetId} onChange={(e) => onUpdate({ targetId: e.target.value })} className="flex-1 bg-slate-900 text-[9px] p-1 rounded outline-none truncate">
           <option value="">Цель...</option>
-          {(action.type === 'give_item' || action.type === 'remove_item') ? project.items.map((i: any) => <option key={i.id} value={i.id}>{i.name}</option>) : project.characters.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          {(action.type === 'give_item' || action.type === 'remove_item') ? items.map((i: any) => <option key={i.id} value={i.id}>{i.name}</option>) : characters.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
       </select>
       {action.type === 'mod_relationship' && (
         <input type="number" value={action.value as number} onChange={(e) => onUpdate({ value: Number(e.target.value) })} className="w-10 bg-slate-900 text-[9px] p-1 rounded outline-none" />

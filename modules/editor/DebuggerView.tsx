@@ -10,10 +10,17 @@ import {
 } from 'lucide-react';
 
 const DebuggerView: React.FC = () => {
-  const { 
-    project, gameState, debugSession, startGame, pauseGame, resumeGame, resetGame,
-    validationResults, runValidation, executeDebugCommand, toggleBreakpoint
-  } = useStore();
+  const scenes = useStore(s => s.project.scenes);
+  const gameState = useStore(s => s.gameState);
+  const debugSession = useStore(s => s.debugSession);
+  const startGame = useStore(s => s.startGame);
+  const pauseGame = useStore(s => s.pauseGame);
+  const resumeGame = useStore(s => s.resumeGame);
+  const resetGame = useStore(s => s.resetGame);
+  const validationResults = useStore(s => s.validationResults);
+  const runValidation = useStore(s => s.runValidation);
+  const executeDebugCommand = useStore(s => s.executeDebugCommand);
+  const toggleBreakpoint = useStore(s => s.toggleBreakpoint);
   
   const [commandInput, setCommandInput] = useState('');
   const [commandLogs, setCommandLogs] = useState<{ id: string, text: string, type: 'in' | 'out' }[]>([]);
@@ -37,7 +44,7 @@ const DebuggerView: React.FC = () => {
     setCommandInput('');
   };
 
-  const scene = project.scenes.find(s => s.id === gameState?.currentSceneId);
+  const scene = scenes.find(s => s.id === gameState?.currentSceneId);
 
   return (
     <div className="flex-1 flex overflow-hidden bg-slate-950">
