@@ -11,11 +11,23 @@ import MediaLibrary from './MediaLibrary';
 import { GoogleGenAI } from "@google/genai";
 
 const SceneEditor: React.FC = () => {
-  const { selectedSceneId, project, updateScene, deleteScene, setStartScene, language } = useStore();
+  const selectedSceneId = useStore(s => s.selectedSceneId);
+  const projectName = useStore(s => s.project.name);
+  const scenes = useStore(s => s.project.scenes);
+  const startSceneId = useStore(s => s.project.startSceneId);
+  const characters = useStore(s => s.project.characters);
+  const items = useStore(s => s.project.items);
+  const quests = useStore(s => s.project.quests);
+
+  const updateScene = useStore(s => s.updateScene);
+  const deleteScene = useStore(s => s.deleteScene);
+  const setStartScene = useStore(s => s.setStartScene);
+  const language = useStore(s => s.language);
+
   const t = translations[language].sceneEditor;
   
-  const scene = project.scenes.find(s => s.id === selectedSceneId);
-  const isStartScene = project.startSceneId === selectedSceneId;
+  const scene = scenes.find(s => s.id === selectedSceneId);
+  const isStartScene = startSceneId === selectedSceneId;
 
   const [expandedChoice, setExpandedChoice] = useState<string | null>(null);
   const [showLibraryModal, setShowLibraryModal] = useState<{ type: 'bg' | 'ambient' | 'action_audio', choiceId?: string, listKey?: any, itemId?: string } | null>(null);
@@ -41,10 +53,10 @@ const SceneEditor: React.FC = () => {
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const context = `
-        Game: ${project.name}
+        Game: ${projectName}
         Scene Title: ${scene.title}
-        Characters: ${project.characters.map(c => c.name).join(', ')}
-        Items: ${project.items.map(i => i.name).join(', ')}
+        Characters: ${characters.map(c => c.name).join(', ')}
+        Items: ${items.map(i => i.name).join(', ')}
       `;
       const fullPrompt = `You are a professional narrative designer. Expand this scene description based on: ${aiPrompt}. 
       Context: ${context}. Keep it atmospheric and engaging. Return story in Russian.`;
@@ -253,7 +265,7 @@ const SceneEditor: React.FC = () => {
                             </div>
                             <div className="space-y-2">
                               {choice.conditions.map(cond => (
-                                <ConditionRow key={cond.id} cond={cond} project={project} onUpdate={(upd) => updateRuleItem(choice.id, cond.id, 'conditions', upd)} onRemove={() => removeRuleItem(choice.id, cond.id, 'conditions')} />
+                                <ConditionRow key={cond.id} cond={cond} scenes={scenes} characters={characters} items={items} quests={quests} variables={useStore.getState().project.variables} onUpdate={(upd) => updateRuleItem(choice.id, cond.id, 'conditions', upd)} onRemove={() => removeRuleItem(choice.id, cond.id, 'conditions')} />
                               ))}
                             </div>
                           </section>
@@ -265,7 +277,7 @@ const SceneEditor: React.FC = () => {
                             </div>
                             <div className="space-y-2">
                               {choice.actions.map(act => (
-                                <ActionRow key={act.id} action={act} project={project} onUpdate={(upd) => updateRuleItem(choice.id, act.id, 'actions', upd)} onRemove={() => removeRuleItem(choice.id, act.id, 'actions')} onOpenLibrary={() => setShowLibraryModal({ type: 'action_audio', choiceId: choice.id, listKey: 'actions', itemId: act.id })} />
+                                <ActionRow key={act.id} action={act} scenes={scenes} characters={characters} items={items} quests={quests} variables={useStore.getState().project.variables} onUpdate={(upd) => updateRuleItem(choice.id, act.id, 'actions', upd)} onRemove={() => removeRuleItem(choice.id, act.id, 'actions')} onOpenLibrary={() => setShowLibraryModal({ type: 'action_audio', choiceId: choice.id, listKey: 'actions', itemId: act.id })} />
                               ))}
                             </div>
                           </section>
@@ -341,7 +353,7 @@ const SceneEditor: React.FC = () => {
   );
 };
 
-const ConditionRow: React.FC<{ cond: RuleCondition, project: any, onUpdate: (u: any) => void, onRemove: () => void }> = ({ cond, project, onUpdate, onRemove }) => {
+const ConditionRow: React.FC<{ cond: RuleCondition, scenes: any[], characters: any[], items: any[], quests: any[], variables: any[], onUpdate: (u: any) => void, onRemove: () => void }> = ({ cond, scenes, characters, items, quests, variables, onUpdate, onRemove }) => {
   return (
     <div className="flex items-center gap-3 p-3 bg-slate-800/40 rounded-xl border border-slate-700/50 group shadow-sm">
       <select 
@@ -365,11 +377,11 @@ const ConditionRow: React.FC<{ cond: RuleCondition, project: any, onUpdate: (u: 
       
       <select value={cond.targetId} onChange={(e) => onUpdate({ targetId: e.target.value })} className="flex-1 bg-slate-950 text-[10px] p-2 rounded-lg outline-none font-bold text-indigo-400 border border-slate-800 shadow-inner">
         <option value="">Выберите цель...</option>
-        {cond.type === 'variable' && project.variables.map((v: any) => <option key={v.id} value={v.id}>{v.name}</option>)}
-        {cond.type === 'item' && project.items.map((i: any) => <option key={i.id} value={i.id}>{i.name}</option>)}
-        {cond.type === 'relationship' && project.characters.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        {cond.type === 'quest' && project.quests.map((q: any) => <option key={q.id} value={q.id}>{q.name}</option>)}
-        {cond.type === 'scene' && project.scenes.map((s: any) => <option key={s.id} value={s.id}>{s.title}</option>)}
+        {cond.type === 'variable' && variables.map((v: any) => <option key={v.id} value={v.id}>{v.name}</option>)}
+        {cond.type === 'item' && items.map((i: any) => <option key={i.id} value={i.id}>{i.name}</option>)}
+        {cond.type === 'relationship' && characters.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        {cond.type === 'quest' && quests.map((q: any) => <option key={q.id} value={q.id}>{q.name}</option>)}
+        {cond.type === 'scene' && scenes.map((s: any) => <option key={s.id} value={s.id}>{s.title}</option>)}
       </select>
       
       <ConditionOperatorSelector condition={cond} onUpdate={(op) => onUpdate({ operator: op })} />
@@ -428,7 +440,7 @@ const ConditionValueInput: React.FC<{ condition: RuleCondition, onUpdate: (val: 
   );
 };
 
-const ActionRow: React.FC<{ action: RuleAction, project: any, onUpdate: (upd: any) => void, onRemove: () => void, onOpenLibrary?: () => void }> = ({ action, project, onUpdate, onRemove, onOpenLibrary }) => {
+const ActionRow: React.FC<{ action: RuleAction, scenes: any[], characters: any[], items: any[], quests: any[], variables: any[], onUpdate: (upd: any) => void, onRemove: () => void, onOpenLibrary?: () => void }> = ({ action, scenes, characters, items, quests, variables, onUpdate, onRemove, onOpenLibrary }) => {
   return (
     <div className="flex items-center gap-3 p-3 bg-slate-800/40 rounded-xl border border-slate-700/50 group shadow-sm">
       <select value={action.type} onChange={(e) => onUpdate({ type: e.target.value, targetId: '', value: 0 })} className="bg-slate-900 text-[10px] font-black text-slate-300 p-2 rounded-lg outline-none w-36 border border-slate-700 shadow-inner">
@@ -443,15 +455,15 @@ const ActionRow: React.FC<{ action: RuleAction, project: any, onUpdate: (upd: an
         <option value="stop_sound">Тишина (Stop)</option>
       </select>
       
-      {action.type === 'change_scene' && <select className="bg-slate-950 text-[10px] p-2 rounded-lg outline-none flex-1 font-bold text-indigo-400 border border-slate-800 shadow-inner" value={action.targetId} onChange={(e) => onUpdate({ targetId: e.target.value })}><option value="">Выберите сцену...</option>{project.scenes.map((s: any) => <option key={s.id} value={s.id}>{s.title}</option>)}</select>}
+      {action.type === 'change_scene' && <select className="bg-slate-950 text-[10px] p-2 rounded-lg outline-none flex-1 font-bold text-indigo-400 border border-slate-800 shadow-inner" value={action.targetId} onChange={(e) => onUpdate({ targetId: e.target.value })}><option value="">Выберите сцену...</option>{scenes.map((s: any) => <option key={s.id} value={s.id}>{s.title}</option>)}</select>}
       
-      {action.type === 'mod_variable' && <select className="bg-slate-950 text-[10px] p-2 rounded-lg outline-none flex-1 font-bold text-indigo-400 border border-slate-800 shadow-inner" value={action.targetId} onChange={(e) => onUpdate({ targetId: e.target.value })}><option value="">Какой лор...</option>{project.variables.map((v: any) => <option key={v.id} value={v.id}>{v.name}</option>)}</select>}
+      {action.type === 'mod_variable' && <select className="bg-slate-950 text-[10px] p-2 rounded-lg outline-none flex-1 font-bold text-indigo-400 border border-slate-800 shadow-inner" value={action.targetId} onChange={(e) => onUpdate({ targetId: e.target.value })}><option value="">Какой лор...</option>{variables.map((v: any) => <option key={v.id} value={v.id}>{v.name}</option>)}</select>}
       
-      {(action.type === 'give_item' || action.type === 'remove_item') && <select className="bg-slate-950 text-[10px] p-2 rounded-lg outline-none flex-1 font-bold text-indigo-400 border border-slate-800 shadow-inner" value={action.targetId} onChange={(e) => onUpdate({ targetId: e.target.value })}><option value="">Какой предмет...</option>{project.items.map((i: any) => <option key={i.id} value={i.id}>{i.name}</option>)}</select>}
+      {(action.type === 'give_item' || action.type === 'remove_item') && <select className="bg-slate-950 text-[10px] p-2 rounded-lg outline-none flex-1 font-bold text-indigo-400 border border-slate-800 shadow-inner" value={action.targetId} onChange={(e) => onUpdate({ targetId: e.target.value })}><option value="">Какой предмет...</option>{items.map((i: any) => <option key={i.id} value={i.id}>{i.name}</option>)}</select>}
       
-      {action.type === 'start_quest' && <select className="bg-slate-950 text-[10px] p-2 rounded-lg outline-none flex-1 font-bold text-indigo-400 border border-slate-800 shadow-inner" value={action.targetId} onChange={(e) => onUpdate({ targetId: e.target.value })}><option value="">Линия квеста...</option>{project.quests.map((q: any) => <option key={q.id} value={q.id}>{q.name}</option>)}</select>}
+      {action.type === 'start_quest' && <select className="bg-slate-950 text-[10px] p-2 rounded-lg outline-none flex-1 font-bold text-indigo-400 border border-slate-800 shadow-inner" value={action.targetId} onChange={(e) => onUpdate({ targetId: e.target.value })}><option value="">Линия квеста...</option>{quests.map((q: any) => <option key={q.id} value={q.id}>{q.name}</option>)}</select>}
       
-      {(action.type === 'join_party' || action.type === 'leave_party') && <select className="bg-slate-950 text-[10px] p-2 rounded-lg outline-none flex-1 font-bold text-indigo-400 border border-slate-800 shadow-inner" value={action.targetId} onChange={(e) => onUpdate({ targetId: e.target.value })}><option value="">Персонаж...</option>{project.characters.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>}
+      {(action.type === 'join_party' || action.type === 'leave_party') && <select className="bg-slate-950 text-[10px] p-2 rounded-lg outline-none flex-1 font-bold text-indigo-400 border border-slate-800 shadow-inner" value={action.targetId} onChange={(e) => onUpdate({ targetId: e.target.value })}><option value="">Персонаж...</option>{characters.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>}
       
       {action.type === 'play_sound' && (
         <button onClick={onOpenLibrary} className="flex-1 bg-slate-950 text-[9px] p-2 rounded-lg text-indigo-400 font-black border border-slate-800 hover:border-indigo-500 truncate transition-all shadow-inner uppercase tracking-tighter">

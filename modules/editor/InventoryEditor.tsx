@@ -17,18 +17,27 @@ const rarityColors = {
 };
 
 const InventoryEditor: React.FC = () => {
-  const { project, selectedItemId, addItem, updateItem, deleteItem, selectItem, language, updateSettings } = useStore();
+  const items = useStore(s => s.project.items);
+  const hudInventoryEnabled = useStore(s => s.project.settings.hudInventoryEnabled);
+  const selectedItemId = useStore(s => s.selectedItemId);
+  const addItem = useStore(s => s.addItem);
+  const updateItem = useStore(s => s.updateItem);
+  const deleteItem = useStore(s => s.deleteItem);
+  const selectItem = useStore(s => s.selectItem);
+  const language = useStore(s => s.language);
+  const updateSettings = useStore(s => s.updateSettings);
+
   const t = translations[language].inventoryEditor;
   
   const [searchQuery, setSearchQuery] = useState('');
-  const item = project.items.find(i => i.id === selectedItemId);
+  const item = items.find(i => i.id === selectedItemId);
 
-  const filteredItems = project.items.filter(i => 
+  const filteredItems = items.filter(i =>
     i.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     i.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (project.items.length === 0) {
+  if (items.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-slate-600 bg-slate-950">
         <div className="p-12 border-2 border-dashed border-slate-800 rounded-3xl flex flex-col items-center max-w-sm text-center">
@@ -49,7 +58,7 @@ const InventoryEditor: React.FC = () => {
       <div className="w-80 border-r border-slate-800 bg-slate-900/30 flex flex-col p-6 space-y-6">
         <div className="flex items-center justify-between">
           <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-            <Package size={14} /> Предметы ({project.items.length})
+            <Package size={14} /> Предметы ({items.length})
           </h3>
           <button onClick={addItem} className="text-indigo-400 hover:text-white transition-transform active:scale-90">
             <Plus size={16} />
@@ -61,7 +70,7 @@ const InventoryEditor: React.FC = () => {
               <span className="text-[9px] font-black text-slate-500 uppercase group-hover:text-indigo-400 transition-colors">Отображать в HUD</span>
               <input 
                 type="checkbox" 
-                checked={project.settings.hudInventoryEnabled} 
+                checked={hudInventoryEnabled}
                 onChange={e => updateSettings({ hudInventoryEnabled: e.target.checked })}
                 className="w-3 h-3 rounded bg-slate-900 border-slate-700 text-indigo-500 focus:ring-0"
               />
