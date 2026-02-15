@@ -19,11 +19,20 @@ import AIAssistantView from './AIAssistantView';
 import SoundtrackEditor from './SoundtrackEditor';
 
 const EditorLayout: React.FC = () => {
-  const { 
-    project, startGame, selectedSceneId, selectScene, addScene, deleteScene,
-    language, setLanguage, activeView, setActiveView,
-    saveProjectLocally, exportProjectAsJson, importProjectFromJson
-  } = useStore();
+  // BOLT OPTIMIZATION: Use targeted selectors to prevent re-renders when unrelated store parts change (e.g. gameState updates)
+  const project = useStore(s => s.project);
+  const startGame = useStore(s => s.startGame);
+  const selectedSceneId = useStore(s => s.selectedSceneId);
+  const selectScene = useStore(s => s.selectScene);
+  const addScene = useStore(s => s.addScene);
+  const deleteScene = useStore(s => s.deleteScene);
+  const language = useStore(s => s.language);
+  const setLanguage = useStore(s => s.setLanguage);
+  const activeView = useStore(s => s.activeView);
+  const setActiveView = useStore(s => s.setActiveView);
+  const saveProjectLocally = useStore(s => s.saveProjectLocally);
+  const exportProjectAsJson = useStore(s => s.exportProjectAsJson);
+  const importProjectFromJson = useStore(s => s.importProjectFromJson);
   
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
   const [showSaveMenu, setShowSaveMenu] = useState(false);
