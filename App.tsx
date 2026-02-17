@@ -5,13 +5,11 @@ import EditorLayout from './modules/editor/EditorLayout.tsx';
 import PlayerEngine from './modules/player/PlayerEngine.tsx';
 
 const App: React.FC = () => {
-  const store = useStore();
-  
-  const mode = store.mode;
-  const project = store.project;
-  const loadExternalStory = store.loadExternalStory;
-  const setMode = store.setMode;
-  const startGame = store.startGame;
+  const mode = useStore(s => s.mode);
+  const isPublished = useStore(s => s.project?.settings?.isPublished);
+  const loadExternalStory = useStore(s => s.loadExternalStory);
+  const setMode = useStore(s => s.setMode);
+  const startGame = useStore(s => s.startGame);
 
   useEffect(() => {
     if (typeof loadExternalStory === 'function') {
@@ -20,15 +18,15 @@ const App: React.FC = () => {
   }, [loadExternalStory]);
 
   useEffect(() => {
-    if (project?.settings?.isPublished) {
+    if (isPublished) {
       if (typeof setMode === 'function') setMode('player');
       if (typeof startGame === 'function') startGame();
     }
-  }, [project?.settings?.isPublished, setMode, startGame]);
+  }, [isPublished, setMode, startGame]);
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-slate-950 text-slate-100 flex flex-col">
-      {mode === 'editor' && !project?.settings?.isPublished ? (
+      {mode === 'editor' && !isPublished ? (
         <EditorLayout />
       ) : (
         <PlayerEngine />

@@ -19,11 +19,20 @@ import AIAssistantView from './AIAssistantView';
 import SoundtrackEditor from './SoundtrackEditor';
 
 const EditorLayout: React.FC = () => {
-  const { 
-    project, startGame, selectedSceneId, selectScene, addScene, deleteScene,
-    language, setLanguage, activeView, setActiveView,
-    saveProjectLocally, exportProjectAsJson, importProjectFromJson
-  } = useStore();
+  const projectName = useStore(s => s.project.name);
+  const scenes = useStore(s => s.project.scenes);
+  const startGame = useStore(s => s.startGame);
+  const selectedSceneId = useStore(s => s.selectedSceneId);
+  const selectScene = useStore(s => s.selectScene);
+  const addScene = useStore(s => s.addScene);
+  const deleteScene = useStore(s => s.deleteScene);
+  const language = useStore(s => s.language);
+  const setLanguage = useStore(s => s.setLanguage);
+  const activeView = useStore(s => s.activeView);
+  const setActiveView = useStore(s => s.setActiveView);
+  const saveProjectLocally = useStore(s => s.saveProjectLocally);
+  const exportProjectAsJson = useStore(s => s.exportProjectAsJson);
+  const importProjectFromJson = useStore(s => s.importProjectFromJson);
   
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
   const [showSaveMenu, setShowSaveMenu] = useState(false);
@@ -33,13 +42,13 @@ const EditorLayout: React.FC = () => {
 
   const groupedScenes = useMemo(() => {
     const groups: Record<string, Scene[]> = {};
-    project.scenes.forEach(s => {
+    scenes.forEach(s => {
       const folder = s.folder || 'Other';
       if (!groups[folder]) groups[folder] = [];
       groups[folder].push(s);
     });
     return groups;
-  }, [project.scenes]);
+  }, [scenes]);
 
   const handleImport = () => {
     const input = document.createElement('input');
@@ -107,7 +116,7 @@ const EditorLayout: React.FC = () => {
             </button>
             {showSaveMenu && (
               <div className="absolute right-0 mt-3 w-72 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 z-[100]">
-                <div className="p-3 border-b border-slate-800 bg-black/20 text-[10px] font-black uppercase tracking-widest text-slate-500">Проект: {project.name}</div>
+                <div className="p-3 border-b border-slate-800 bg-black/20 text-[10px] font-black uppercase tracking-widest text-slate-500">Проект: {projectName}</div>
                 <div className="p-1.5 space-y-0.5">
                    <button onClick={() => { saveProjectLocally(); setShowSaveMenu(false); }} className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-slate-300 hover:bg-slate-800 rounded-lg transition-colors group">
                      <MonitorIcon size={14} className="group-hover:text-indigo-400 transition-colors" /> Сохранить локально
