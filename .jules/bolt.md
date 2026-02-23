@@ -1,0 +1,3 @@
+## 2024-05-23 - Graph View Performance Optimization
+**Learning:** In complex visual editors like GraphView, O(N^2) or O(E*S) lookups during rendering are major bottlenecks. Using a memoized Map for constant-time lookups significantly improves performance. Additionally, achieving true memoization for child components (like SceneNode) requires not only React.memo but also stable callbacks; using `useStore.getState()` inside callbacks is an effective pattern to keep them stable by avoiding dependencies on the reactive state.
+**Action:** Always prefer Map-based lookups for related entities during rendering. Use stable callback patterns when passing handlers to memoized components in high-frequency event scenarios (like dragging).
