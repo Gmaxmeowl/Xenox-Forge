@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useStore } from '../../store/useStore';
 import { 
   Magnet, Undo2, Redo2, GitMerge, Plus, Star, Settings2, X, Layers
@@ -14,6 +14,15 @@ const NODE_WIDTH = 208;
 
 const GraphView: React.FC = () => {
   const project = useStore(s => s.project);
+
+  // PERFORMANCE: Create a map for O(1) scene lookups to optimize edge rendering.
+  // This reduces complexity from O(N * E) to O(N + E).
+  const scenesMap = useMemo(() => {
+    const map = new Map<string, typeof project.scenes[0]>();
+    project.scenes.forEach(s => map.set(s.id, s));
+    return map;
+  }, [project.scenes]);
+
   const selectedSceneId = useStore(s => s.selectedSceneId);
   const selectScene = useStore(s => s.selectScene);
   const updateScenesPositions = useStore(s => s.updateScenesPositions);
@@ -175,7 +184,8 @@ const GraphView: React.FC = () => {
               {project.scenes.flatMap(scene => 
                 (scene.choices || []).flatMap(choice => 
                   (choice.actions || []).filter(a => a.type === 'change_scene').map(action => {
-                    const target = project.scenes.find(s => s.id === action.targetId);
+                    // PERFORMANCE: Using scenesMap for O(1) lookup instead of project.scenes.find() (O(N))
+                    const target = action.targetId ? scenesMap.get(action.targetId) : null;
                     if (!target) return null;
                     const isHighlighted = selectedSceneId === scene.id || selectedSceneId === target.id;
                     
