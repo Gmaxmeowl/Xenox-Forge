@@ -1,0 +1,3 @@
+## 2026-03-03 - [Optimized GraphView Edge Rendering]
+**Learning:** Rendering complex graph edges using (Edges \times Nodes)$ complexity due to repeated `.find()` calls on the scenes array within a `flatMap` loop significantly impacts interaction performance (dragging) as the number of scenes grows. Re-rendering the entire component when unrelated project settings change adds further overhead.
+**Action:** Use `useMemo` to create a stable `Map` for O(1) lookups of related entities (like scenes by ID) during render loops. Refine Zustand selectors to subscribe only to specific state properties instead of large objects.
