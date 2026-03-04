@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useStore } from '../../store/useStore';
 import { 
   Magnet, Undo2, Redo2, GitMerge, Plus, Star, Settings2, X, Layers
@@ -31,6 +31,13 @@ const GraphView: React.FC = () => {
   const [connectingFromId, setConnectingFromId] = useState<string | null>(null);
   const [mousePos, setMousePos] = useState<Point>({ x: 0, y: 0 });
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+
+  // Performance: Memoize scenes map for O(1) lookups during edge rendering
+  const scenesMap = useMemo(() => {
+    const map = new Map<string, typeof project.scenes[0]>();
+    project.scenes.forEach(s => map.set(s.id, s));
+    return map;
+  }, [project.scenes]);
 
   const dragInfo = useRef<{
     startX: number;
@@ -175,7 +182,8 @@ const GraphView: React.FC = () => {
               {project.scenes.flatMap(scene => 
                 (scene.choices || []).flatMap(choice => 
                   (choice.actions || []).filter(a => a.type === 'change_scene').map(action => {
-                    const target = project.scenes.find(s => s.id === action.targetId);
+                    // Optimized: Use Map for O(1) lookup instead of O(N) find
+                    const target = scenesMap.get(action.targetId as string);
                     if (!target) return null;
                     const isHighlighted = selectedSceneId === scene.id || selectedSceneId === target.id;
                     
