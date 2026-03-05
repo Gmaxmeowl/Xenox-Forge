@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useStore } from '../../store/useStore';
 import { 
   Magnet, Undo2, Redo2, GitMerge, Plus, Star, Settings2, X, Layers
@@ -28,6 +28,13 @@ const GraphView: React.FC = () => {
   const [snapToGrid, setSnapToGrid] = useState(true);
   const [showInspector, setShowInspector] = useState(false);
   
+  // Performance optimization: Create a Map for O(1) scene lookups
+  const scenesMap = useMemo(() => {
+    const map = new Map();
+    (project.scenes || []).forEach(s => map.set(s.id, s));
+    return map;
+  }, [project.scenes]);
+
   const [connectingFromId, setConnectingFromId] = useState<string | null>(null);
   const [mousePos, setMousePos] = useState<Point>({ x: 0, y: 0 });
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
@@ -74,8 +81,9 @@ const GraphView: React.FC = () => {
 
   const handleMouseUp = useCallback(() => {
     if (connectingFromId && hoveredNodeId && connectingFromId !== hoveredNodeId) {
-      const sourceScene = project.scenes.find(s => s.id === connectingFromId);
-      const targetScene = project.scenes.find(s => s.id === hoveredNodeId);
+      // Optimization: Using O(1) Map lookup instead of O(N) find
+      const sourceScene = scenesMap.get(connectingFromId);
+      const targetScene = scenesMap.get(hoveredNodeId);
       
       if (sourceScene && targetScene) {
         commitHistory();
@@ -116,7 +124,8 @@ const GraphView: React.FC = () => {
     selectScene(sceneId);
 
     const initialPositions = new Map<string, Point>();
-    const s = project.scenes.find(sc => sc.id === sceneId);
+    // Optimization: Using O(1) Map lookup instead of O(N) find
+    const s = scenesMap.get(sceneId);
     if (s) initialPositions.set(sceneId, { ...s.position });
 
     dragInfo.current = { startX: pos.x, startY: pos.y, initialPositions };
@@ -175,7 +184,8 @@ const GraphView: React.FC = () => {
               {project.scenes.flatMap(scene => 
                 (scene.choices || []).flatMap(choice => 
                   (choice.actions || []).filter(a => a.type === 'change_scene').map(action => {
-                    const target = project.scenes.find(s => s.id === action.targetId);
+                    // Optimization: O(1) lookup in Map instead of O(N) find in nested flatMap
+                    const target = scenesMap.get(action.targetId);
                     if (!target) return null;
                     const isHighlighted = selectedSceneId === scene.id || selectedSceneId === target.id;
                     
