@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useStore } from '../../store/useStore';
 import { 
   Magnet, Undo2, Redo2, GitMerge, Plus, Star, Settings2, X, Layers
@@ -22,6 +22,12 @@ const GraphView: React.FC = () => {
   const redo = useStore(s => s.redo);
   const addScene = useStore(s => s.addScene);
   const updateScene = useStore(s => s.updateScene);
+
+  // Performance Optimization: Memoized map for O(1) scene lookup by ID
+  // This avoids O(N) find operations inside the edge rendering loop (O(E * N) total)
+  const scenesMap = useMemo(() => {
+    return new Map(project.scenes.map(s => [s.id, s]));
+  }, [project.scenes]);
   
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -175,7 +181,8 @@ const GraphView: React.FC = () => {
               {project.scenes.flatMap(scene => 
                 (scene.choices || []).flatMap(choice => 
                   (choice.actions || []).filter(a => a.type === 'change_scene').map(action => {
-                    const target = project.scenes.find(s => s.id === action.targetId);
+                    // Optimized: Using Map for O(1) lookup instead of Array.find (O(N))
+                    const target = scenesMap.get(action.targetId as string);
                     if (!target) return null;
                     const isHighlighted = selectedSceneId === scene.id || selectedSceneId === target.id;
                     
@@ -196,8 +203,8 @@ const GraphView: React.FC = () => {
 
               {connectingFromId && (
                 <line 
-                  x1={(project.scenes.find(s => s.id === connectingFromId)?.position.x || 0) + (NODE_WIDTH - 20)}
-                  y1={(project.scenes.find(s => s.id === connectingFromId)?.position.y || 0) + 120}
+                  x1={(scenesMap.get(connectingFromId)?.position.x || 0) + (NODE_WIDTH - 20)}
+                  y1={(scenesMap.get(connectingFromId)?.position.y || 0) + 120}
                   x2={mousePos.x}
                   y2={mousePos.y}
                   stroke="#6366f1"
