@@ -32,6 +32,13 @@ const GraphView: React.FC = () => {
   const [mousePos, setMousePos] = useState<Point>({ x: 0, y: 0 });
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
+  // BOLT: Optimize scene lookup for edge rendering to O(1) from O(N)
+  const scenesMap = React.useMemo(() => {
+    const map = new Map<string, typeof project.scenes[0]>();
+    project.scenes.forEach(s => map.set(s.id, s));
+    return map;
+  }, [project.scenes]);
+
   const dragInfo = useRef<{
     startX: number;
     startY: number;
@@ -175,7 +182,8 @@ const GraphView: React.FC = () => {
               {project.scenes.flatMap(scene => 
                 (scene.choices || []).flatMap(choice => 
                   (choice.actions || []).filter(a => a.type === 'change_scene').map(action => {
-                    const target = project.scenes.find(s => s.id === action.targetId);
+                    // BOLT: Replaced O(N) find with O(1) map lookup
+                    const target = scenesMap.get(action.targetId as string);
                     if (!target) return null;
                     const isHighlighted = selectedSceneId === scene.id || selectedSceneId === target.id;
                     
