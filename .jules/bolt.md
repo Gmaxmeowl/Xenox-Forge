@@ -1,0 +1,3 @@
+## 2026-03-11 - Optimized Graph Editor Performance
+**Learning:** Bulk updates in Zustand (like dragging multiple nodes) were originally implemented with O(N * U) complexity using `.find` inside a `.map`. For a graph editor with many scenes, this causes noticeable lag during interactions. Similarly, rendering SVG edges with O(S * E) complexity (searching for target scene for every edge) bottlenecks the main thread.
+**Action:** Use lookup Objects/Maps for constant-time access during state updates and rendering loops. Wrap frequently updated UI components in `React.memo` and ensure prop stability with `useCallback`.
