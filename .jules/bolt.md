@@ -1,0 +1,3 @@
+## 2025-05-15 - [GraphView Performance Optimization]
+**Learning:** In `GraphView.tsx`, resolving edge targets using nested `find` calls inside a `flatMap` resulted in quadratic-like performance ($O(E \times N)$). Using a memoized `Map` for constant-time lookups optimizes this to $O(E + N)$. Additionally, coarse-grained Zustand subscriptions (subscribing to the entire `project` object) caused the `GraphView` to re-render on unrelated state changes (e.g., inventory or settings updates).
+**Action:** Always use granular Zustand selectors (e.g., `useStore(s => s.project.scenes)`) and utilize memoized Maps for constant-time lookups in render loops or frequent event handlers.
