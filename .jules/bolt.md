@@ -1,0 +1,3 @@
+## 2025-05-15 - [GraphView Rendering Optimization]
+**Learning:** In `GraphView.tsx`, resolving edge targets using nested `find` calls inside a `flatMap` resulted in quadratic-like performance ($O(E \times N)$). Using a memoized `Map` for constant-time lookups optimizes this to $O(E + N)$. Additionally, extracting a `React.memo` component for nodes and using `useStore.getState()` for stable callbacks prevents the entire graph from re-rendering during drag operations.
+**Action:** Always prefer Map/Object lookups for relational data in render loops and use granular selectors/stable callbacks to isolate frequent updates.
