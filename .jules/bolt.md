@@ -1,0 +1,3 @@
+## 2025-02-14 - [GraphView Rendering Optimization]
+**Learning:** In `GraphView.tsx`, resolving edge targets using nested `find` calls inside a `flatMap` resulted in quadratic-like performance ($O(E \times N)$). Using a memoized `Map` for constant-time lookups optimizes this to $O(E + N)$. Additionally, ensure all React hooks like `useMemo` are defined at the top level of the component to follow React's architectural constraints and avoid linting errors.
+**Action:** Always utilize a `Map` or `Record` for lookups in render loops or frequent event handlers, and define hooks at the top level of the component.
