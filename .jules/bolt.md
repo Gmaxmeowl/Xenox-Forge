@@ -1,0 +1,3 @@
+## 2025-04-01 - [GraphView Performance: $O(E \times N)$ to $O(E)$]
+**Learning:** In GraphView rendering, using `.find()` inside a `.map()` for edges resulted in $O(E \times N)$ complexity. Replacing it with a memoized `Map` lookup reduces it to $O(E + N)$. Additionally, using `useStore.getState()` inside callbacks allows removing large state dependencies (like `scenes`), stabilizing handlers during frequent updates (like dragging).
+**Action:** Always prefer `Map` or `Record` for lookups in render loops. Use granular selectors and `getState()` for stable callbacks in performance-critical UI components.
