@@ -211,7 +211,20 @@ export const useStore = create<AppState>()(
         return { project: { ...s.project, scenes: nextScenes, startSceneId: nextStartId }, selectedSceneId: s.selectedCharacterId === id ? null : s.selectedSceneId };
       }),
       setStartScene: (id) => set(s => ({ project: { ...s.project, startSceneId: id } })),
-      updateScenesPositions: (updates) => set(s => ({ project: { ...s.project, scenes: (s.project.scenes || []).map(scene => { const update = updates.find(u => u.id === scene.id); return update ? { ...scene, position: update.position } : scene; }) } })),
+      updateScenesPositions: (updates) => set(s => {
+        // Optimized bulk update: O(U) to create map + O(N) to apply updates = O(N + U)
+        // Previous O(N * U) implementation was slow with many scenes
+        const updateMap = Object.fromEntries(updates.map(u => [u.id, u.position]));
+        return {
+          project: {
+            ...s.project,
+            scenes: (s.project.scenes || []).map(scene => {
+              const newPos = updateMap[scene.id];
+              return newPos ? { ...scene, position: newPos } : scene;
+            })
+          }
+        };
+      }),
       addQuest: () => set(s => ({ project: { ...s.project, quests: [...(s.project.quests || []), { id: `q_${Date.now()}`, name: 'Новый квест', description: '', icon: '📜', stages: [], initialStageIds: [], startConditions: [], onStartActions: [], onCompleteActions: [], onFailActions: [] }] } })),
       selectQuest: (id) => set({ selectedQuestId: id }),
       updateQuest: (id, upd) => set(s => ({ project: { ...s.project, quests: (s.project.quests || []).map(q => q.id === id ? { ...q, ...upd } : q) } })),

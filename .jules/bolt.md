@@ -1,0 +1,3 @@
+## 2026-04-04 - [Optimizing Bulk Position Updates and Graph Rendering]
+**Learning:** In `store/useStore.ts`, utilizing `.find()` within a `.map()` during bulk updates created an $O(N \times U)$ complexity bottleneck, which slowed down node dragging as the number of scenes increased. Similarly, in `GraphView.tsx`, performing nested `.find()` calls during edge rendering resulted in $O(E \times N)$ complexity, leading to visible lag in large projects.
+**Action:** Always replace O(N^2) or $O(E \times N)$ nested lookups with $O(N + U)$ or $O(E + N)$ operations by utilizing a temporary Map or Record for constant-time ($O(1)$) lookups during batch updates and render loops.
