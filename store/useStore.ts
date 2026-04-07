@@ -211,7 +211,11 @@ export const useStore = create<AppState>()(
         return { project: { ...s.project, scenes: nextScenes, startSceneId: nextStartId }, selectedSceneId: s.selectedCharacterId === id ? null : s.selectedSceneId };
       }),
       setStartScene: (id) => set(s => ({ project: { ...s.project, startSceneId: id } })),
-      updateScenesPositions: (updates) => set(s => ({ project: { ...s.project, scenes: (s.project.scenes || []).map(scene => { const update = updates.find(u => u.id === scene.id); return update ? { ...scene, position: update.position } : scene; }) } })),
+      // BOLT: Optimize bulk updates by converting updates array to a lookup object. O(N * U) -> O(N + U)
+      updateScenesPositions: (updates) => set(s => {
+        const updateMap = Object.fromEntries(updates.map(u => [u.id, u.position]));
+        return { project: { ...s.project, scenes: (s.project.scenes || []).map(scene => { const pos = updateMap[scene.id]; return pos ? { ...scene, position: pos } : scene; }) } };
+      }),
       addQuest: () => set(s => ({ project: { ...s.project, quests: [...(s.project.quests || []), { id: `q_${Date.now()}`, name: 'Новый квест', description: '', icon: '📜', stages: [], initialStageIds: [], startConditions: [], onStartActions: [], onCompleteActions: [], onFailActions: [] }] } })),
       selectQuest: (id) => set({ selectedQuestId: id }),
       updateQuest: (id, upd) => set(s => ({ project: { ...s.project, quests: (s.project.quests || []).map(q => q.id === id ? { ...q, ...upd } : q) } })),
@@ -270,18 +274,22 @@ export const useStore = create<AppState>()(
           project: { ...s.project, quests: nextQuests } 
         };
       }),
-      updateQuestStagesPositions: (questId, updates) => set(s => ({
-        project: {
-          ...s.project,
-          quests: s.project.quests.map(q => q.id === questId ? {
-            ...q,
-            stages: q.stages.map(st => {
-              const upd = updates.find(u => u.id === st.id);
-              return upd ? { ...st, position: upd.position } : st;
-            })
-          } : q)
-        }
-      })),
+      // BOLT: Optimize bulk updates for quest stages. O(N * U) -> O(N + U)
+      updateQuestStagesPositions: (questId, updates) => set(s => {
+        const updateMap = Object.fromEntries(updates.map(u => [u.id, u.position]));
+        return {
+          project: {
+            ...s.project,
+            quests: s.project.quests.map(q => q.id === questId ? {
+              ...q,
+              stages: q.stages.map(st => {
+                const pos = updateMap[st.id];
+                return pos ? { ...st, position: pos } : st;
+              })
+            } : q)
+          }
+        };
+      }),
       selectItem: (id) => set({ selectedItemId: id }),
       addItem: () => set(s => ({ project: { ...s.project, items: [...(s.project.items || []), { id: `i_${Date.now()}`, name: 'Новый предмет', icon: '📦', description: '', category: 'misc', rarity: 'common', weight: 1, value: 10, isUsable: true, isConsumable: false, isDiscardable: true, useConditions: [], useActions: [] }] } })),
       updateItem: (id, upd) => set(s => ({ project: { ...s.project, items: (s.project.items || []).map(i => i.id === id ? { ...i, ...upd } : i) } })),
