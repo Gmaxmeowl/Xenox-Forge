@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useStore } from '../../store/useStore';
 import { 
   Magnet, Undo2, Redo2, GitMerge, Plus, Star, Settings2, X, Layers
@@ -22,6 +22,9 @@ const GraphView: React.FC = () => {
   const redo = useStore(s => s.redo);
   const addScene = useStore(s => s.addScene);
   const updateScene = useStore(s => s.updateScene);
+
+  // Optimized scene lookup for O(1) access
+  const sceneMap = useMemo(() => new Map(project.scenes.map(s => [s.id, s])), [project.scenes]);
   
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -175,10 +178,10 @@ const GraphView: React.FC = () => {
               {project.scenes.flatMap(scene => 
                 (scene.choices || []).flatMap(choice => 
                   (choice.actions || []).filter(a => a.type === 'change_scene').map(action => {
-                    const target = project.scenes.find(s => s.id === action.targetId);
+                    const target = sceneMap.get(action.targetId as string);
                     if (!target) return null;
                     const isHighlighted = selectedSceneId === scene.id || selectedSceneId === target.id;
-                    
+
                     return (
                       <path 
                         key={`${scene.id}-${choice.id}-${action.id}`}
