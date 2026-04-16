@@ -13,7 +13,8 @@ const GRID_SIZE = 24;
 const NODE_WIDTH = 208;
 
 const GraphView: React.FC = () => {
-  const project = useStore(s => s.project);
+  const scenes = useStore(s => s.project.scenes);
+  const startSceneId = useStore(s => s.project.startSceneId);
   const selectedSceneId = useStore(s => s.selectedSceneId);
   const selectScene = useStore(s => s.selectScene);
   const updateScenesPositions = useStore(s => s.updateScenesPositions);
@@ -74,8 +75,8 @@ const GraphView: React.FC = () => {
 
   const handleMouseUp = useCallback(() => {
     if (connectingFromId && hoveredNodeId && connectingFromId !== hoveredNodeId) {
-      const sourceScene = project.scenes.find(s => s.id === connectingFromId);
-      const targetScene = project.scenes.find(s => s.id === hoveredNodeId);
+      const sourceScene = scenes.find(s => s.id === connectingFromId);
+      const targetScene = scenes.find(s => s.id === hoveredNodeId);
       
       if (sourceScene && targetScene) {
         commitHistory();
@@ -95,7 +96,7 @@ const GraphView: React.FC = () => {
     setConnectingFromId(null);
     dragInfo.current = null;
     setIsDragging(false);
-  }, [connectingFromId, hoveredNodeId, project.scenes, updateScene, commitHistory]);
+  }, [connectingFromId, hoveredNodeId, scenes, updateScene, commitHistory]);
 
   useEffect(() => {
     if (isDragging || connectingFromId) {
@@ -116,7 +117,7 @@ const GraphView: React.FC = () => {
     selectScene(sceneId);
 
     const initialPositions = new Map<string, Point>();
-    const s = project.scenes.find(sc => sc.id === sceneId);
+    const s = scenes.find(sc => sc.id === sceneId);
     if (s) initialPositions.set(sceneId, { ...s.position });
 
     dragInfo.current = { startX: pos.x, startY: pos.y, initialPositions };
@@ -135,6 +136,11 @@ const GraphView: React.FC = () => {
     selectScene(id);
     setShowInspector(true);
   };
+
+  // Performance: O(1) lookup for scenes when rendering edges
+  const sceneMap = React.useMemo(() => {
+    return new Map(scenes.map(s => [s.id, s]));
+  }, [scenes]);
 
   return (
     <div className="w-full h-full relative overflow-hidden flex bg-slate-950">
@@ -172,10 +178,10 @@ const GraphView: React.FC = () => {
                 </marker>
               </defs>
               
-              {project.scenes.flatMap(scene => 
+              {scenes.flatMap(scene =>
                 (scene.choices || []).flatMap(choice => 
                   (choice.actions || []).filter(a => a.type === 'change_scene').map(action => {
-                    const target = project.scenes.find(s => s.id === action.targetId);
+                    const target = sceneMap.get(action.targetId as string);
                     if (!target) return null;
                     const isHighlighted = selectedSceneId === scene.id || selectedSceneId === target.id;
                     
@@ -196,8 +202,8 @@ const GraphView: React.FC = () => {
 
               {connectingFromId && (
                 <line 
-                  x1={(project.scenes.find(s => s.id === connectingFromId)?.position.x || 0) + (NODE_WIDTH - 20)}
-                  y1={(project.scenes.find(s => s.id === connectingFromId)?.position.y || 0) + 120}
+                  x1={(sceneMap.get(connectingFromId)?.position.x || 0) + (NODE_WIDTH - 20)}
+                  y1={(sceneMap.get(connectingFromId)?.position.y || 0) + 120}
                   x2={mousePos.x}
                   y2={mousePos.y}
                   stroke="#6366f1"
@@ -208,9 +214,9 @@ const GraphView: React.FC = () => {
               )}
             </svg>
 
-            {project.scenes.map(scene => {
+            {scenes.map(scene => {
               const isSelected = selectedSceneId === scene.id;
-              const isStart = project.startSceneId === scene.id;
+              const isStart = startSceneId === scene.id;
               const isHovered = hoveredNodeId === scene.id;
               
               return (
