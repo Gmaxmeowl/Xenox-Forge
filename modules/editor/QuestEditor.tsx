@@ -17,9 +17,15 @@ const QuestEditor: React.FC = () => {
   const t = translations[language].questsEditor;
   
   const [searchQuery, setSearchQuery] = useState('');
-  const q = project.quests.find(item => item.id === selectedQuestId);
+  const q = React.useMemo(() => project.quests.find(item => item.id === selectedQuestId), [project.quests, selectedQuestId]);
   const [editingStageId, setEditingStageId] = useState<string | null>(null);
   const [snapToGrid, setSnapToGrid] = useState(true);
+
+  // Bolt: Memoized map for O(1) stage lookups during edge rendering
+  const stageMap = React.useMemo(() => {
+    if (!q) return new Map<string, QuestStage>();
+    return new Map(q.stages.map(s => [s.id, s]));
+  }, [q]);
 
   // Graph logic
   const graphRef = useRef<HTMLDivElement>(null);
@@ -243,7 +249,8 @@ const QuestEditor: React.FC = () => {
                    </defs>
                    {q.stages.flatMap(stage => 
                       stage.nextStageIds.map(targetId => {
-                        const target = q.stages.find(s => s.id === targetId);
+                        // Bolt: O(1) lookup using memoized stageMap
+                        const target = stageMap.get(targetId);
                         if (!target) return null;
                         return (
                           <path 
