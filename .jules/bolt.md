@@ -1,0 +1,3 @@
+## 2026-05-03 - [Quadratic Complexity in Graph Edge Rendering and Store Updates]
+**Learning:** The graph view was re-rendering edges using nested `find` calls, leading to O(N^2) complexity. Store updates for multiple node positions were also O(N*U) due to nested `find` calls for each update. Using granular selectors in Zustand prevents re-renders on unrelated project data changes (e.g. items, variables).
+**Action:** Use memoized lookup Maps for edge rendering and Object.fromEntries for bulk store updates to achieve O(N+U) complexity. Always use granular selectors for high-frequency components.

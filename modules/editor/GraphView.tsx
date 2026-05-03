@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useStore } from '../../store/useStore';
 import { 
   Magnet, Undo2, Redo2, GitMerge, Plus, Star, Settings2, X, Layers
@@ -13,7 +13,11 @@ const GRID_SIZE = 24;
 const NODE_WIDTH = 208;
 
 const GraphView: React.FC = () => {
-  const project = useStore(s => s.project);
+  // Performance: Use granular selectors to prevent re-renders when unrelated project data changes
+  const scenes = useStore(s => s.project.scenes);
+  // Performance: O(1) lookup map for edge rendering to avoid O(N^2) complexity
+  const sceneMap = useMemo(() => new Map(scenes.map(s => [s.id, s])), [scenes]);
+  const startSceneId = useStore(s => s.project.startSceneId);
   const selectedSceneId = useStore(s => s.selectedSceneId);
   const selectScene = useStore(s => s.selectScene);
   const updateScenesPositions = useStore(s => s.updateScenesPositions);
@@ -38,14 +42,14 @@ const GraphView: React.FC = () => {
     initialPositions: Map<string, Point>;
   } | null>(null);
 
-  const getMousePos = (e: MouseEvent | React.MouseEvent): Point => {
+  const getMousePos = useCallback((e: MouseEvent | React.MouseEvent): Point => {
     if (!containerRef.current) return { x: 0, y: 0 };
     const rect = containerRef.current.getBoundingClientRect();
     return {
       x: e.clientX - rect.left + containerRef.current.scrollLeft,
       y: e.clientY - rect.top + containerRef.current.scrollTop
     };
-  };
+  }, []);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     const pos = getMousePos(e);
@@ -70,12 +74,13 @@ const GraphView: React.FC = () => {
       });
       updateScenesPositions(updates);
     }
-  }, [snapToGrid, updateScenesPositions, connectingFromId]);
+  }, [snapToGrid, updateScenesPositions, connectingFromId, getMousePos]);
 
   const handleMouseUp = useCallback(() => {
     if (connectingFromId && hoveredNodeId && connectingFromId !== hoveredNodeId) {
-      const sourceScene = project.scenes.find(s => s.id === connectingFromId);
-      const targetScene = project.scenes.find(s => s.id === hoveredNodeId);
+      const currentScenes = useStore.getState().project.scenes;
+      const sourceScene = currentScenes.find(s => s.id === connectingFromId);
+      const targetScene = currentScenes.find(s => s.id === hoveredNodeId);
       
       if (sourceScene && targetScene) {
         commitHistory();
@@ -95,7 +100,7 @@ const GraphView: React.FC = () => {
     setConnectingFromId(null);
     dragInfo.current = null;
     setIsDragging(false);
-  }, [connectingFromId, hoveredNodeId, project.scenes, updateScene, commitHistory]);
+  }, [connectingFromId, hoveredNodeId, updateScene, commitHistory]);
 
   useEffect(() => {
     if (isDragging || connectingFromId) {
@@ -108,7 +113,7 @@ const GraphView: React.FC = () => {
     };
   }, [isDragging, connectingFromId, handleMouseMove, handleMouseUp]);
 
-  const startDragging = (e: React.MouseEvent, sceneId: string) => {
+  const startDragging = useCallback((e: React.MouseEvent, sceneId: string) => {
     if (connectingFromId) return;
     e.stopPropagation();
     const pos = getMousePos(e);
@@ -116,25 +121,25 @@ const GraphView: React.FC = () => {
     selectScene(sceneId);
 
     const initialPositions = new Map<string, Point>();
-    const s = project.scenes.find(sc => sc.id === sceneId);
+    const s = useStore.getState().project.scenes.find(sc => sc.id === sceneId);
     if (s) initialPositions.set(sceneId, { ...s.position });
 
     dragInfo.current = { startX: pos.x, startY: pos.y, initialPositions };
     setIsDragging(true);
-  };
+  }, [connectingFromId, selectScene, commitHistory, getMousePos]);
 
-  const startConnecting = (e: React.MouseEvent, sceneId: string) => {
+  const startConnecting = useCallback((e: React.MouseEvent, sceneId: string) => {
     e.stopPropagation();
     e.preventDefault();
     const pos = getMousePos(e);
     setConnectingFromId(sceneId);
     setMousePos(pos);
-  };
+  }, [getMousePos]);
 
-  const openInspector = (id: string) => {
+  const openInspector = useCallback((id: string) => {
     selectScene(id);
     setShowInspector(true);
-  };
+  }, [selectScene]);
 
   return (
     <div className="w-full h-full relative overflow-hidden flex bg-slate-950">
@@ -172,10 +177,10 @@ const GraphView: React.FC = () => {
                 </marker>
               </defs>
               
-              {project.scenes.flatMap(scene => 
+              {scenes.flatMap(scene =>
                 (scene.choices || []).flatMap(choice => 
                   (choice.actions || []).filter(a => a.type === 'change_scene').map(action => {
-                    const target = project.scenes.find(s => s.id === action.targetId);
+                    const target = sceneMap.get(action.targetId as string);
                     if (!target) return null;
                     const isHighlighted = selectedSceneId === scene.id || selectedSceneId === target.id;
                     
@@ -196,8 +201,8 @@ const GraphView: React.FC = () => {
 
               {connectingFromId && (
                 <line 
-                  x1={(project.scenes.find(s => s.id === connectingFromId)?.position.x || 0) + (NODE_WIDTH - 20)}
-                  y1={(project.scenes.find(s => s.id === connectingFromId)?.position.y || 0) + 120}
+                  x1={(sceneMap.get(connectingFromId)?.position.x || 0) + (NODE_WIDTH - 20)}
+                  y1={(sceneMap.get(connectingFromId)?.position.y || 0) + 120}
                   x2={mousePos.x}
                   y2={mousePos.y}
                   stroke="#6366f1"
@@ -208,9 +213,9 @@ const GraphView: React.FC = () => {
               )}
             </svg>
 
-            {project.scenes.map(scene => {
+            {scenes.map(scene => {
               const isSelected = selectedSceneId === scene.id;
-              const isStart = project.startSceneId === scene.id;
+              const isStart = startSceneId === scene.id;
               const isHovered = hoveredNodeId === scene.id;
               
               return (
