@@ -1,0 +1,3 @@
+## 2026-05-05 - [Optimized Graph and Quest Editor Rendering]
+**Learning:** Broad Zustand store subscriptions (e.g., `const project = useStore(s => s.project)`) cause components to re-render whenever *any* property of the project changes. Additionally, using `Array.find()` inside `.map()` or `.flatMap()` loops (e.g., for rendering edges) creates (N^2)$ or (E*N)$ complexity, which degrades performance as the graph grows.
+**Action:** Always use granular selectors (e.g., `useStore(s => s.project.scenes)`) and implement memoized lookup maps (`useMemo(() => new Map(array.map(item => [item.id, item])), [array])`) to achieve (1)$ lookups in render loops.
