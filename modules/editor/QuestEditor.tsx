@@ -10,23 +10,34 @@ import {
 const GRID_SIZE = 24;
 
 const QuestEditor: React.FC = () => {
+  const quests = useStore(s => s.project.quests);
+  const variables = useStore(s => s.project.variables);
+  const items = useStore(s => s.project.items);
+  const scenes = useStore(s => s.project.scenes);
+  const characters = useStore(s => s.project.characters);
+  const settings = useStore(s => s.project.settings);
   const { 
-    project, selectedQuestId, selectQuest, addQuest, updateQuest, deleteQuest, 
+    selectedQuestId, selectQuest, addQuest, updateQuest, deleteQuest,
     addQuestStage, updateQuestStage, deleteQuestStage, updateQuestStagesPositions, language, updateSettings
   } = useStore();
   const t = translations[language].questsEditor;
   
   const [searchQuery, setSearchQuery] = useState('');
-  const q = project.quests.find(item => item.id === selectedQuestId);
+  const q = quests.find(item => item.id === selectedQuestId);
   const [editingStageId, setEditingStageId] = useState<string | null>(null);
   const [snapToGrid, setSnapToGrid] = useState(true);
+
+  const stageMap = useMemo(() => {
+    if (!q) return new Map<string, QuestStage>();
+    return new Map(q.stages.map(s => [s.id, s]));
+  }, [q?.stages]);
 
   // Graph logic
   const graphRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragInfo = useRef<{ startX: number; startY: number; initialPos: { x: number; y: number }; stageId: string } | null>(null);
 
-  const filteredQuests = project.quests.filter(item => 
+  const filteredQuests = quests.filter(item =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     item.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -125,7 +136,7 @@ const QuestEditor: React.FC = () => {
       <div className="w-80 border-r border-slate-800 bg-slate-900/30 flex flex-col p-6 space-y-6 z-20">
         <div className="flex items-center justify-between">
           <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-            <BookOpen size={14} /> КВЕСТЫ ({project.quests.length})
+            <BookOpen size={14} /> КВЕСТЫ ({quests.length})
           </h3>
           <button onClick={addQuest} className="text-indigo-400 hover:text-white transition-transform active:scale-90 p-1">
             <Plus size={18} />
@@ -137,7 +148,7 @@ const QuestEditor: React.FC = () => {
               <span className="text-[9px] font-black text-slate-500 uppercase group-hover:text-indigo-400 transition-colors tracking-tight">Отображать в HUD</span>
               <input 
                 type="checkbox" 
-                checked={project.settings.hudQuestsEnabled} 
+                checked={settings.hudQuestsEnabled}
                 onChange={e => updateSettings({ hudQuestsEnabled: e.target.checked })}
                 className="w-3 h-3 rounded bg-slate-900 border-slate-700 text-indigo-500 focus:ring-0"
               />
@@ -243,7 +254,7 @@ const QuestEditor: React.FC = () => {
                    </defs>
                    {q.stages.flatMap(stage => 
                       stage.nextStageIds.map(targetId => {
-                        const target = q.stages.find(s => s.id === targetId);
+                        const target = stageMap.get(targetId);
                         if (!target) return null;
                         return (
                           <path 
@@ -371,10 +382,10 @@ const QuestEditor: React.FC = () => {
                                               className="flex-1 bg-slate-900 text-[10px] font-bold text-indigo-400 p-1.5 rounded outline-none border border-slate-800"
                                            >
                                               <option value="">Цель...</option>
-                                              {c.type === 'variable' && project.variables.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
-                                              {c.type === 'item' && project.items.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
-                                              {c.type === 'scene' && project.scenes.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
-                                              {c.type === 'relationship' && project.characters.map(ch => <option key={ch.id} value={ch.id}>{ch.name}</option>)}
+                                              {c.type === 'variable' && variables.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                                              {c.type === 'item' && items.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                                              {c.type === 'scene' && scenes.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+                                              {c.type === 'relationship' && characters.map(ch => <option key={ch.id} value={ch.id}>{ch.name}</option>)}
                                            </select>
                                            <button onClick={() => removeRow(stage.id, c.id, 'conditions')} className="text-slate-600 hover:text-red-500"><Trash2 size={12}/></button>
                                         </div>
@@ -435,9 +446,9 @@ const QuestEditor: React.FC = () => {
                                               className="flex-1 bg-slate-900 text-[10px] font-bold text-emerald-400 p-1.5 rounded outline-none border border-slate-800"
                                            >
                                               <option value="">Цель...</option>
-                                              {a.type === 'mod_variable' && project.variables.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
-                                              {a.type === 'give_item' && project.items.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
-                                              {(a.type === 'join_party' || a.type === 'leave_party') && project.characters.map(ch => <option key={ch.id} value={ch.id}>{ch.name}</option>)}
+                                              {a.type === 'mod_variable' && variables.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                                              {a.type === 'give_item' && items.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                                              {(a.type === 'join_party' || a.type === 'leave_party') && characters.map(ch => <option key={ch.id} value={ch.id}>{ch.name}</option>)}
                                               {(a.type === 'end_quest' || a.type === 'fail_quest') && <option value={q.id}>{q.name}</option>}
                                            </select>
                                            <button onClick={() => removeRow(stage.id, a.id, 'completionActions')} className="text-slate-600 hover:text-red-500"><Trash2 size={12}/></button>
