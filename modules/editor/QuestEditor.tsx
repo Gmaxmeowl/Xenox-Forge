@@ -18,6 +18,12 @@ const QuestEditor: React.FC = () => {
   
   const [searchQuery, setSearchQuery] = useState('');
   const q = project.quests.find(item => item.id === selectedQuestId);
+
+  const stageMap = useMemo(() => {
+    if (!q) return new Map<string, QuestStage>();
+    return new Map(q.stages.map(s => [s.id, s]));
+  }, [q]);
+
   const [editingStageId, setEditingStageId] = useState<string | null>(null);
   const [snapToGrid, setSnapToGrid] = useState(true);
 
@@ -243,7 +249,7 @@ const QuestEditor: React.FC = () => {
                    </defs>
                    {q.stages.flatMap(stage => 
                       stage.nextStageIds.map(targetId => {
-                        const target = q.stages.find(s => s.id === targetId);
+                        const target = stageMap.get(targetId);
                         if (!target) return null;
                         return (
                           <path 
