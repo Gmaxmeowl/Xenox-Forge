@@ -1,0 +1,3 @@
+## 2025-05-15 - [Zustand & Graph Optimization]
+**Learning:** Broad Zustand selectors (e.g., `const project = useStore(s => s.project)`) cause components to re-render on *any* project change (items, variables, etc.), even if the component only cares about scenes. Additionally, $O(N^2)$ lookups in graph rendering and $O(N \times U)$ bulk updates in the store are significant bottlenecks as the project grows.
+**Action:** Always use granular selectors for state access. Use `useMemo` to create lookup Maps for $O(1)$ retrieval during render and event handling. Refactor bulk store updates to use Maps for $O(N + U)$ complexity.
