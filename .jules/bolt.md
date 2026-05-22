@@ -1,0 +1,3 @@
+## 2026-05-22 - [O(1) lookups and Granular Selectors]
+**Learning:** High-frequency operations (like dragging nodes in a graph) can become a bottleneck when they trigger state updates that involve (N \cdot U)$ complexity. Refactoring these to (N + U)$ using Maps significantly improves performance. Additionally, using broad selectors like `useStore(s => s.project)` causes unnecessary re-renders; granular selectors are essential for performance in complex components.
+**Action:** Always prefer Map lookups for bulk updates and use granular selectors for store subscriptions to minimize re-renders and computational overhead.
