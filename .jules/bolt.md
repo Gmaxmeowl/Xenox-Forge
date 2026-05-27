@@ -1,0 +1,3 @@
+## 2025-05-15 - [Optimization of bulk updates and edge resolution]
+**Learning:** In a graph-based editor, frequently looking up nodes by ID inside loops (e.g., during drag operations or edge rendering) leads to O(N^2) complexity. Using memoized Maps (via `useMemo`) or temporary Maps (during state updates) reduces this to O(N), providing significant performance gains as the project size grows.
+**Action:** Always prefer Map-based lookups over `.find()` on arrays when performing multiple lookups against the same collection. In React components, use `useMemo` to keep the lookup Map stable between renders.
