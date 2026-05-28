@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useStore } from '../../store/useStore';
 import { translations } from '../../translations';
 import { Quest, QuestStage, RuleAction, RuleCondition, ActionType, ConditionOperator, ConditionType } from '../../types';
@@ -20,6 +20,13 @@ const QuestEditor: React.FC = () => {
   const q = project.quests.find(item => item.id === selectedQuestId);
   const [editingStageId, setEditingStageId] = useState<string | null>(null);
   const [snapToGrid, setSnapToGrid] = useState(true);
+
+  // Optimized O(N) lookup map for quest stages
+  const stageMap = useMemo(() => {
+    const map = new Map();
+    (q?.stages || []).forEach(s => map.set(s.id, s));
+    return map;
+  }, [q?.stages]);
 
   // Graph logic
   const graphRef = useRef<HTMLDivElement>(null);
@@ -243,7 +250,7 @@ const QuestEditor: React.FC = () => {
                    </defs>
                    {q.stages.flatMap(stage => 
                       stage.nextStageIds.map(targetId => {
-                        const target = q.stages.find(s => s.id === targetId);
+                        const target = stageMap.get(targetId);
                         if (!target) return null;
                         return (
                           <path 
