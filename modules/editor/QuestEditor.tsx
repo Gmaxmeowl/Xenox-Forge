@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useStore } from '../../store/useStore';
 import { translations } from '../../translations';
 import { Quest, QuestStage, RuleAction, RuleCondition, ActionType, ConditionOperator, ConditionType } from '../../types';
@@ -18,6 +18,15 @@ const QuestEditor: React.FC = () => {
   
   const [searchQuery, setSearchQuery] = useState('');
   const q = project.quests.find(item => item.id === selectedQuestId);
+
+  const stageMap = useMemo(() => {
+    const map = new Map<string, QuestStage>();
+    if (q) {
+      (q.stages || []).forEach(s => map.set(s.id, s));
+    }
+    return map;
+  }, [q?.stages]);
+
   const [editingStageId, setEditingStageId] = useState<string | null>(null);
   const [snapToGrid, setSnapToGrid] = useState(true);
 
@@ -33,7 +42,7 @@ const QuestEditor: React.FC = () => {
 
   const handleStageMouseDown = (e: React.MouseEvent, stageId: string) => {
     e.stopPropagation();
-    const stage = q?.stages.find(s => s.id === stageId);
+    const stage = stageMap.get(stageId);
     if (!stage) return;
     
     dragInfo.current = {
@@ -79,7 +88,7 @@ const QuestEditor: React.FC = () => {
 
   const toggleNextStage = (stageId: string, targetStageId: string) => {
     if (!q) return;
-    const stage = q.stages.find(s => s.id === stageId);
+    const stage = stageMap.get(stageId);
     if (!stage) return;
     const nextIds = [...stage.nextStageIds];
     const idx = nextIds.indexOf(targetStageId);
@@ -90,7 +99,7 @@ const QuestEditor: React.FC = () => {
 
   const addCondition = (stageId: string) => {
     if (!q) return;
-    const stage = q.stages.find(s => s.id === stageId);
+    const stage = stageMap.get(stageId);
     if (!stage) return;
     const newCond: RuleCondition = { id: `qc_${Date.now()}`, type: 'variable', operator: 'eq', value: 0 };
     updateQuestStage(q.id, stageId, { conditions: [...stage.conditions, newCond] });
@@ -98,7 +107,7 @@ const QuestEditor: React.FC = () => {
 
   const addAction = (stageId: string) => {
     if (!q) return;
-    const stage = q.stages.find(s => s.id === stageId);
+    const stage = stageMap.get(stageId);
     if (!stage) return;
     const newAction: RuleAction = { id: `qa_${Date.now()}`, type: 'mod_variable', value: 1 };
     updateQuestStage(q.id, stageId, { completionActions: [...stage.completionActions, newAction] });
@@ -106,7 +115,7 @@ const QuestEditor: React.FC = () => {
 
   const removeRow = (stageId: string, rowId: string, listKey: 'conditions' | 'completionActions') => {
     if (!q) return;
-    const stage = q.stages.find(s => s.id === stageId);
+    const stage = stageMap.get(stageId);
     if (!stage) return;
     const newList = (stage[listKey] as any[]).filter(i => i.id !== rowId);
     updateQuestStage(q.id, stageId, { [listKey]: newList });
@@ -114,7 +123,7 @@ const QuestEditor: React.FC = () => {
 
   const updateRow = (stageId: string, rowId: string, listKey: 'conditions' | 'completionActions', updates: any) => {
     if (!q) return;
-    const stage = q.stages.find(s => s.id === stageId);
+    const stage = stageMap.get(stageId);
     if (!stage) return;
     const newList = (stage[listKey] as any[]).map(i => i.id === rowId ? { ...i, ...updates } : i);
     updateQuestStage(q.id, stageId, { [listKey]: newList });
@@ -243,7 +252,7 @@ const QuestEditor: React.FC = () => {
                    </defs>
                    {q.stages.flatMap(stage => 
                       stage.nextStageIds.map(targetId => {
-                        const target = q.stages.find(s => s.id === targetId);
+                        const target = stageMap.get(targetId);
                         if (!target) return null;
                         return (
                           <path 
@@ -304,7 +313,7 @@ const QuestEditor: React.FC = () => {
                 </div>
 
                 {(() => {
-                   const stage = q.stages.find(s => s.id === editingStageId);
+                   const stage = stageMap.get(editingStageId);
                    if (!stage) return null;
                    return (
                       <div className="space-y-8 pb-10">
