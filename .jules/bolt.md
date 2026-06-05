@@ -1,0 +1,3 @@
+## 2026-06-05 - [Optimizing Graph Lookups and Store Updates]
+**Learning:** In applications with graph-based UIs, O(N^2) edge resolution and O(N*U) state updates become significant bottlenecks as the dataset grows (e.g., >100 scenes). Using memoized Maps for lookups reduces complexity to O(N) and O(N+U) respectively. Additionally, large editor components must use granular Zustand selectors to avoid re-rendering on every unrelated project change.
+**Action:** Always prefer Map-based lookups for ID-to-object resolution in render loops and bulk state updates. Implement granular selectors for components that only need a subset of a large state object.
