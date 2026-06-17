@@ -1,0 +1,3 @@
+## 2025-05-15 - Bulk State Updates Bottleneck
+**Learning:** High-frequency bulk updates (e.g., dragging multiple graph nodes) implemented using nested `.map().find()` result in $O(N \times U)$ complexity. For a large project with 10,000 scenes and 100 updates, this takes ~15ms per frame, which can drop the frame rate below 60FPS when combined with React rendering overhead.
+**Action:** Always refactor bulk updates to use a pre-constructed `Map` for lookups, achieving $O(N + U)$ complexity. Ensure explicit `undefined` checks when retrieving from the Map to handle potential falsy values robustly.
