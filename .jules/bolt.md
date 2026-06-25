@@ -1,0 +1,3 @@
+## 2025-05-14 - O(N + E) Graph Edge Rendering
+**Learning:** In the `GraphView` component, the original edge rendering logic performed an O(N) lookup (`scenes.find`) for every edge, resulting in O(N * E) complexity. In large stories with many scenes and connections, this becomes a significant bottleneck during interactive operations like dragging nodes.
+**Action:** Use a memoized `Map` to index scenes by ID once per render, allowing O(1) lookups during edge calculation and reducing overall complexity to O(N + E). Ensure the `useMemo` is declared at the top level of the component to follow React Rules of Hooks.
