@@ -32,6 +32,13 @@ const GraphView: React.FC = () => {
   const [mousePos, setMousePos] = useState<Point>({ x: 0, y: 0 });
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
+  // PERFORMANCE: Memoize scene lookup map for faster edge rendering (O(N+E) vs O(N*E))
+  const sceneMap = React.useMemo(() => {
+    const map = new Map<string, typeof project.scenes[number]>();
+    project.scenes.forEach(s => map.set(s.id, s));
+    return map;
+  }, [project.scenes]);
+
   const dragInfo = useRef<{
     startX: number;
     startY: number;
@@ -175,7 +182,7 @@ const GraphView: React.FC = () => {
               {project.scenes.flatMap(scene => 
                 (scene.choices || []).flatMap(choice => 
                   (choice.actions || []).filter(a => a.type === 'change_scene').map(action => {
-                    const target = project.scenes.find(s => s.id === action.targetId);
+                    const target = sceneMap.get(action.targetId as string);
                     if (!target) return null;
                     const isHighlighted = selectedSceneId === scene.id || selectedSceneId === target.id;
                     
@@ -196,8 +203,8 @@ const GraphView: React.FC = () => {
 
               {connectingFromId && (
                 <line 
-                  x1={(project.scenes.find(s => s.id === connectingFromId)?.position.x || 0) + (NODE_WIDTH - 20)}
-                  y1={(project.scenes.find(s => s.id === connectingFromId)?.position.y || 0) + 120}
+                  x1={(sceneMap.get(connectingFromId)?.position.x || 0) + (NODE_WIDTH - 20)}
+                  y1={(sceneMap.get(connectingFromId)?.position.y || 0) + 120}
                   x2={mousePos.x}
                   y2={mousePos.y}
                   stroke="#6366f1"
