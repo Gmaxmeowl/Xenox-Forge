@@ -1,0 +1,3 @@
+## 2026-07-17 - GraphView O(1) Lookup Memoization
+**Learning:** In larger storyline flow structures (GraphFlow canvases), executing nested `.find` array searches for target scenes inside loop iterations (e.g., choice edge/connection rendering) results in O(N) lookup operations per scene, deteriorating to O(N * E) overall rendering complexity. Introducing a memoized `Map` over `project.scenes` allows O(1) key-value fetches during rendering and connection updates, lowering complexity to O(N + E).
+**Action:** Always memoize lookup collections into constant-time Maps when rendering graph elements or handling frequent updates (such as mouse actions or node dragging) in custom flow components.
