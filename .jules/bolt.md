@@ -1,0 +1,3 @@
+## 2025-07-19 - [Optimize GraphView edge rendering and store selectors]
+**Learning:** Broad store subscriptions (e.g. subscribing to the whole project) cause major rendering bottlenecks during irrelevant state updates (such as inventory, variables, or quest edits). Furthermore, nested linear searches like `.find()` inside rendering blocks scale poorly ($O(N \times E)$) on large graph canvases.
+**Action:** Always use granular Zustand selectors to scope updates to only the necessary fields, and memoize list elements into lookup Maps (`useMemo`) to enable $O(1)$ lookups during edge rendering and node event handling.
