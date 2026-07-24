@@ -1,0 +1,3 @@
+## 2026-01-14 - Map-based Store Position Updates
+**Learning:** Drag-and-drop position updates trigger high-frequency store actions. When updates use nested `.find()` operations inside `.map()` array traversal, the computational complexity scales quadratically as $O(N \times U)$ where N is the number of elements and U is the number of updates. Constructing a temporary `Map` representation of the updates array allows $O(1)$ lookups, bringing the complexity down to linear $O(N + U)$ which provides a massive performance speedup.
+**Action:** Always replace array `.find()` lookups with Map-based structures in high-frequency store actions like position or bulk attribute updates.
