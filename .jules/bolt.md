@@ -1,0 +1,3 @@
+## 2024-11-20 - [Zustand Store Map-Based Lookups]
+**Learning:** Bulk position updates for scenes and quest stages in the Zustand store are fired frequently (e.g., during mouse move events when dragging elements on the canvas). Using a nested linear search (`.map()` with inner `.find()`) on large arrays of items with multiple updates results in $O(N \times M)$ complexity, causing noticeable UI stuttering.
+**Action:** Always refactor bulk store updates to pre-build an $O(1)$ lookup Map from the updates array. This reduces the complexity of bulk updates to $O(N + M)$ and eliminates frame drops during node dragging.
