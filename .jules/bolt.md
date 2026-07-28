@@ -1,0 +1,3 @@
+## 2025-07-28 - GraphView Node Lookup Optimization
+**Learning:** Hot rendering paths in visual layout graphs (like drawing connection lines and node coordinates) frequently perform expensive O(N) array search lookups (such as `Array.prototype.find`). When rendering or dragging nodes in large scenarios with thousands of items, this leads to O(N^2) complexity, causing significant UI rendering latency and blocking the main thread.
+**Action:** Use a memoized Map lookup via `useMemo` to convert hot lookup paths from O(N) to O(1) complexity, and ensure any useCallback or useEffect hooks using the map are properly updated in their dependency arrays to prevent stale closures.
