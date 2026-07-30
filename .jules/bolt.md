@@ -1,0 +1,3 @@
+## 2025-05-24 - [Optimizing GraphView Edge Rendering using Memoized Map and Hoisted JSX Paths]
+**Learning:** In React node-graph systems, edge (path) rendering requires mapping source nodes to target nodes. When implemented using nested `.find()` searches on a scenes array within JSX, this results in an $O(N \cdot E)$ quadratic complexity during dragging, causing severe framerate drops.
+**Action:** Always construct an $O(1)$ lookup Map via `useMemo` for array-based entity relations. Hoist JSX path rendering to a component-level `useMemo` block that depends strictly on the source nodes, the selected ID, and the lookup Map, preventing unnecessary element reconstruction during unrelated re-renders.
