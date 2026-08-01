@@ -1,0 +1,3 @@
+## 2026-08-01 - [Preserving exact .find() semantics in Map optimizations]
+**Learning:** When refactoring nested linear searches (like `Array.prototype.find()`) over bulk position updates into O(1) Map lookups, simply converting the array with `new Map(updates.map(...))` can produce different outputs if the updates array contains duplicate node IDs. The Map constructor retains the *last* duplicate entry, whereas `.find()` stops and returns the *first* match.
+**Action:** Always implement a safe, first-occurrence-preserving Map builder (e.g., looping and checking `if (!map.has(id)) map.set(...)`) to maintain 100% semantic equivalence and pass strict correctness/regression tests.
