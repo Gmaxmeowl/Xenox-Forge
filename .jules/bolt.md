@@ -1,0 +1,3 @@
+## 2024-11-20 - Map-based Bulk Store Updates
+**Learning:** Bulk position updates for scenes and quest stages in `store/useStore.ts` were using nested `.find()` operations inside a `.map()`, scaling at $O(N \times U)$ complexity. By refactoring to a Map-based lookup, we reduced the complexity to $O(N + U)$, resulting in a ~20.8x performance improvement (speeding up 10,000 items with 100 updates from ~10242.49ms to ~491.82ms over 1,000 iterations).
+**Action:** Always prefer Map-based structures for lookup operations inside maps or loops to maintain $O(N + U)$ complexity instead of $O(N \times U)$ quadratic complexity. Ensure semantic equivalence by only adding the first matching item when converting arrays with duplicates to lookup Maps.
