@@ -211,7 +211,27 @@ export const useStore = create<AppState>()(
         return { project: { ...s.project, scenes: nextScenes, startSceneId: nextStartId }, selectedSceneId: s.selectedCharacterId === id ? null : s.selectedSceneId };
       }),
       setStartScene: (id) => set(s => ({ project: { ...s.project, startSceneId: id } })),
-      updateScenesPositions: (updates) => set(s => ({ project: { ...s.project, scenes: (s.project.scenes || []).map(scene => { const update = updates.find(u => u.id === scene.id); return update ? { ...scene, position: update.position } : scene; }) } })),
+      updateScenesPositions: (updates) => set(s => {
+        // Optimization: Refactored bulk scenes position updates from O(N * U) to O(N + U) via Map-based lookup.
+        // For large story maps, dragging multiple nodes triggers frequent bulk position updates.
+        // Using Map lookup ensures fast, linear performance.
+        const updatesMap = new Map();
+        for (let i = 0; i < updates.length; i++) {
+          const u = updates[i];
+          if (!updatesMap.has(u.id)) {
+            updatesMap.set(u.id, u);
+          }
+        }
+        return {
+          project: {
+            ...s.project,
+            scenes: (s.project.scenes || []).map(scene => {
+              const update = updatesMap.get(scene.id);
+              return update ? { ...scene, position: update.position } : scene;
+            })
+          }
+        };
+      }),
       addQuest: () => set(s => ({ project: { ...s.project, quests: [...(s.project.quests || []), { id: `q_${Date.now()}`, name: 'Новый квест', description: '', icon: '📜', stages: [], initialStageIds: [], startConditions: [], onStartActions: [], onCompleteActions: [], onFailActions: [] }] } })),
       selectQuest: (id) => set({ selectedQuestId: id }),
       updateQuest: (id, upd) => set(s => ({ project: { ...s.project, quests: (s.project.quests || []).map(q => q.id === id ? { ...q, ...upd } : q) } })),
@@ -270,18 +290,30 @@ export const useStore = create<AppState>()(
           project: { ...s.project, quests: nextQuests } 
         };
       }),
-      updateQuestStagesPositions: (questId, updates) => set(s => ({
-        project: {
-          ...s.project,
-          quests: s.project.quests.map(q => q.id === questId ? {
-            ...q,
-            stages: q.stages.map(st => {
-              const upd = updates.find(u => u.id === st.id);
-              return upd ? { ...st, position: upd.position } : st;
-            })
-          } : q)
+      updateQuestStagesPositions: (questId, updates) => set(s => {
+        // Optimization: Refactored quest stages position updates from O(N * U) to O(N + U) via Map-based lookup.
+        // When updating stages in bulk, mapping over all stages and finding matching update keys using .find()
+        // becomes slow. A Map-based lookup guarantees linear time O(N + U) complexity.
+        const updatesMap = new Map();
+        for (let i = 0; i < updates.length; i++) {
+          const u = updates[i];
+          if (!updatesMap.has(u.id)) {
+            updatesMap.set(u.id, u);
+          }
         }
-      })),
+        return {
+          project: {
+            ...s.project,
+            quests: s.project.quests.map(q => q.id === questId ? {
+              ...q,
+              stages: q.stages.map(st => {
+                const upd = updatesMap.get(st.id);
+                return upd ? { ...st, position: upd.position } : st;
+              })
+            } : q)
+          }
+        };
+      }),
       selectItem: (id) => set({ selectedItemId: id }),
       addItem: () => set(s => ({ project: { ...s.project, items: [...(s.project.items || []), { id: `i_${Date.now()}`, name: 'Новый предмет', icon: '📦', description: '', category: 'misc', rarity: 'common', weight: 1, value: 10, isUsable: true, isConsumable: false, isDiscardable: true, useConditions: [], useActions: [] }] } })),
       updateItem: (id, upd) => set(s => ({ project: { ...s.project, items: (s.project.items || []).map(i => i.id === id ? { ...i, ...upd } : i) } })),
