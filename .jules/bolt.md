@@ -1,0 +1,3 @@
+## 2026-08-07 - [Optimize GraphView Connection Line Rendering]
+**Learning:** In larger story projects, the `GraphView.tsx` component repeatedly iterates over `project.scenes` using `Array.prototype.find()` within nested rendering loops (e.g., rendering SVG lines/edges for choices and connecting lines). This results in a heavy O(N^2) complexity that scales poorly and introduces visible layout lagging during drag-and-drop operations of nodes.
+**Action:** Created a memoized `sceneMap` mapping scene IDs to scene records in `GraphView` with React's `useMemo`, and wrapped the SVG path collection generation in `useMemo` to skip recalculations when unrelated states change. This optimizes node-to-node lookups to constant O(1) time and reduces unnecessary re-renders.
