@@ -1,0 +1,3 @@
+## 2026-08-16 - GraphView Edge Rendering Optimization
+**Learning:** In GraphView canvas rendering, traversing scene choices and actions to find target scenes via `Array.prototype.find()` creates $O(N \cdot E)$ overhead during canvas interactions and mouse moves. Replacing `.find()` with a top-level memoized `sceneMap` (`Map<string, Scene>`) and memoizing edge JSX calculations (`edges`) reduces recalculation overhead from ~712.7ms to ~57.7ms (~12.3x speedup) for 1,000 scenes.
+**Action:** When working with graph or tree representations where nodes reference each other by ID, build a memoized `Map` at the top level of the React component and pass lookup maps to `useCallback` dependency arrays to prevent stale closures.
