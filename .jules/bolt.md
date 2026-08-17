@@ -1,0 +1,3 @@
+## 2025-05-18 - Map-based lookup for Zustand store position updates
+**Learning:** Bulk position updates in Zustand stores during drag events can become an $O(N \times U)$ bottleneck if `Array.prototype.find()` is called on updates array inside a `.map()` loop over items. Converting updates to a `Map` prior to mapping reduces lookup complexity to $O(1)$, yielding an $O(N + U)$ total runtime. Preserving the first key occurrence (`if (!map.has(key)) map.set(key, val)`) ensures exact semantic equivalence with `.find()`.
+**Action:** Always pre-build a `Map` for bulk lookup array operations in state reducers and store actions that are called continuously during drag or scroll interactions.
