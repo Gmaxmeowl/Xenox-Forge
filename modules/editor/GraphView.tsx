@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useStore } from '../../store/useStore';
 import { 
   Magnet, Undo2, Redo2, GitMerge, Plus, Star, Settings2, X, Layers
@@ -123,6 +123,18 @@ const GraphView: React.FC = () => {
     setIsDragging(true);
   };
 
+  // Performance optimization: Memoize map of scene ID -> Scene object to avoid O(N) array finds
+  // during SVG edge rendering (reduces edge calculation complexity from O(N * C) to O(C)).
+  const sceneMap = useMemo(() => {
+    const map = new Map<string, typeof project.scenes[0]>();
+    for (const scene of project.scenes) {
+      if (!map.has(scene.id)) {
+        map.set(scene.id, scene);
+      }
+    }
+    return map;
+  }, [project.scenes]);
+
   const startConnecting = (e: React.MouseEvent, sceneId: string) => {
     e.stopPropagation();
     e.preventDefault();
@@ -175,7 +187,8 @@ const GraphView: React.FC = () => {
               {project.scenes.flatMap(scene => 
                 (scene.choices || []).flatMap(choice => 
                   (choice.actions || []).filter(a => a.type === 'change_scene').map(action => {
-                    const target = project.scenes.find(s => s.id === action.targetId);
+                    // O(1) lookup using memoized sceneMap instead of O(N) project.scenes.find()
+                    const target = sceneMap.get(action.targetId as string);
                     if (!target) return null;
                     const isHighlighted = selectedSceneId === scene.id || selectedSceneId === target.id;
                     
