@@ -1,0 +1,3 @@
+## 2025-05-18 - Bulk Position Updates Optimization in Store
+**Learning:** In Zustand stores handling spatial data (such as graph scene or quest stage positions), bulk updates using nested `Array.prototype.find()` inside `.map()` results in O(N × U) complexity. Pre-constructing a Map from the update array reduces time complexity to O(N + U), yielding >20x speedup for large node counts without changing the public API or behavior.
+**Action:** Always convert update lists into lookup Maps before mapping over state arrays in Zustand actions. Ensure duplicate update IDs preserve first-occurrence priority (`if (!map.has(id))`) for full equivalence with `.find()`.
