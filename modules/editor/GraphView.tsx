@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useStore } from '../../store/useStore';
 import { 
   Magnet, Undo2, Redo2, GitMerge, Plus, Star, Settings2, X, Layers
@@ -38,6 +38,19 @@ const GraphView: React.FC = () => {
     initialPositions: Map<string, Point>;
   } | null>(null);
 
+  // Performance optimization: Memoize scene lookup Map to convert O(N) array .find() lookups
+  // into O(1) Map lookups when calculating transition edges and handling connections/dragging.
+  // Testing for map.has first preserves original Array.prototype.find first-match behavior.
+  const sceneMap = useMemo(() => {
+    const map = new Map<string, typeof project.scenes[0]>();
+    for (const s of project.scenes) {
+      if (!map.has(s.id)) {
+        map.set(s.id, s);
+      }
+    }
+    return map;
+  }, [project.scenes]);
+
   const getMousePos = (e: MouseEvent | React.MouseEvent): Point => {
     if (!containerRef.current) return { x: 0, y: 0 };
     const rect = containerRef.current.getBoundingClientRect();
@@ -74,8 +87,8 @@ const GraphView: React.FC = () => {
 
   const handleMouseUp = useCallback(() => {
     if (connectingFromId && hoveredNodeId && connectingFromId !== hoveredNodeId) {
-      const sourceScene = project.scenes.find(s => s.id === connectingFromId);
-      const targetScene = project.scenes.find(s => s.id === hoveredNodeId);
+      const sourceScene = sceneMap.get(connectingFromId);
+      const targetScene = sceneMap.get(hoveredNodeId);
       
       if (sourceScene && targetScene) {
         commitHistory();
@@ -95,7 +108,7 @@ const GraphView: React.FC = () => {
     setConnectingFromId(null);
     dragInfo.current = null;
     setIsDragging(false);
-  }, [connectingFromId, hoveredNodeId, project.scenes, updateScene, commitHistory]);
+  }, [connectingFromId, hoveredNodeId, sceneMap, updateScene, commitHistory]);
 
   useEffect(() => {
     if (isDragging || connectingFromId) {
@@ -116,7 +129,7 @@ const GraphView: React.FC = () => {
     selectScene(sceneId);
 
     const initialPositions = new Map<string, Point>();
-    const s = project.scenes.find(sc => sc.id === sceneId);
+    const s = sceneMap.get(sceneId);
     if (s) initialPositions.set(sceneId, { ...s.position });
 
     dragInfo.current = { startX: pos.x, startY: pos.y, initialPositions };
@@ -175,7 +188,7 @@ const GraphView: React.FC = () => {
               {project.scenes.flatMap(scene => 
                 (scene.choices || []).flatMap(choice => 
                   (choice.actions || []).filter(a => a.type === 'change_scene').map(action => {
-                    const target = project.scenes.find(s => s.id === action.targetId);
+                    const target = action.targetId ? sceneMap.get(action.targetId) : undefined;
                     if (!target) return null;
                     const isHighlighted = selectedSceneId === scene.id || selectedSceneId === target.id;
                     
@@ -196,8 +209,8 @@ const GraphView: React.FC = () => {
 
               {connectingFromId && (
                 <line 
-                  x1={(project.scenes.find(s => s.id === connectingFromId)?.position.x || 0) + (NODE_WIDTH - 20)}
-                  y1={(project.scenes.find(s => s.id === connectingFromId)?.position.y || 0) + 120}
+                  x1={(sceneMap.get(connectingFromId)?.position.x || 0) + (NODE_WIDTH - 20)}
+                  y1={(sceneMap.get(connectingFromId)?.position.y || 0) + 120}
                   x2={mousePos.x}
                   y2={mousePos.y}
                   stroke="#6366f1"
