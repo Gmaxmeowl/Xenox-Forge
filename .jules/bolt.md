@@ -1,0 +1,3 @@
+## 2026-09-16 - Map Lookup Equivalence in Zustand Store Updates
+**Learning:** When optimizing nested `Array.prototype.find()` inside `.map()` loops during state updates to a `Map` lookup, constructing the `Map` with `if (!map.has(key)) map.set(key, val)` preserves exact semantic equivalence with `.find()` (returning the first matching element), and avoids $O(N \times U)$ performance degradation during interactive UI drag events.
+**Action:** Always construct lookup Maps using `if (!map.has(key))` when converting `.find()` calls in bulk store actions to maintain semantic accuracy while achieving $O(N + U)$ complexity.
