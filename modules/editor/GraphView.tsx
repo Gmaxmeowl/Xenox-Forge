@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useStore } from '../../store/useStore';
 import { 
   Magnet, Undo2, Redo2, GitMerge, Plus, Star, Settings2, X, Layers
@@ -38,6 +38,47 @@ const GraphView: React.FC = () => {
     initialPositions: Map<string, Point>;
   } | null>(null);
 
+  // Memoize Map of scene ID -> Scene object for O(1) lookups
+  // Preserves first occurrence to strictly match Array.prototype.find behavior
+  const sceneMap = useMemo(() => {
+    const map = new Map<string, typeof project.scenes[number]>();
+    for (const scene of project.scenes || []) {
+      if (!map.has(scene.id)) {
+        map.set(scene.id, scene);
+      }
+    }
+    return map;
+  }, [project.scenes]);
+
+  // Memoize scene edge list to eliminate O(N^2) nested loops and Array.find calls on every render pass
+  const edges = useMemo(() => {
+    const result: Array<{
+      id: string;
+      sourceScene: typeof project.scenes[number];
+      targetScene: typeof project.scenes[number];
+    }> = [];
+
+    for (const scene of project.scenes || []) {
+      if (!scene.choices) continue;
+      for (const choice of scene.choices) {
+        if (!choice.actions) continue;
+        for (const action of choice.actions) {
+          if (action.type === 'change_scene' && action.targetId) {
+            const target = sceneMap.get(action.targetId);
+            if (target) {
+              result.push({
+                id: `${scene.id}-${choice.id}-${action.id}`,
+                sourceScene: scene,
+                targetScene: target,
+              });
+            }
+          }
+        }
+      }
+    }
+    return result;
+  }, [project.scenes, sceneMap]);
+
   const getMousePos = (e: MouseEvent | React.MouseEvent): Point => {
     if (!containerRef.current) return { x: 0, y: 0 };
     const rect = containerRef.current.getBoundingClientRect();
@@ -74,8 +115,8 @@ const GraphView: React.FC = () => {
 
   const handleMouseUp = useCallback(() => {
     if (connectingFromId && hoveredNodeId && connectingFromId !== hoveredNodeId) {
-      const sourceScene = project.scenes.find(s => s.id === connectingFromId);
-      const targetScene = project.scenes.find(s => s.id === hoveredNodeId);
+      const sourceScene = sceneMap.get(connectingFromId);
+      const targetScene = sceneMap.get(hoveredNodeId);
       
       if (sourceScene && targetScene) {
         commitHistory();
@@ -95,7 +136,7 @@ const GraphView: React.FC = () => {
     setConnectingFromId(null);
     dragInfo.current = null;
     setIsDragging(false);
-  }, [connectingFromId, hoveredNodeId, project.scenes, updateScene, commitHistory]);
+  }, [connectingFromId, hoveredNodeId, sceneMap, updateScene, commitHistory]);
 
   useEffect(() => {
     if (isDragging || connectingFromId) {
@@ -116,7 +157,7 @@ const GraphView: React.FC = () => {
     selectScene(sceneId);
 
     const initialPositions = new Map<string, Point>();
-    const s = project.scenes.find(sc => sc.id === sceneId);
+    const s = sceneMap.get(sceneId);
     if (s) initialPositions.set(sceneId, { ...s.position });
 
     dragInfo.current = { startX: pos.x, startY: pos.y, initialPositions };
@@ -172,32 +213,26 @@ const GraphView: React.FC = () => {
                 </marker>
               </defs>
               
-              {project.scenes.flatMap(scene => 
-                (scene.choices || []).flatMap(choice => 
-                  (choice.actions || []).filter(a => a.type === 'change_scene').map(action => {
-                    const target = project.scenes.find(s => s.id === action.targetId);
-                    if (!target) return null;
-                    const isHighlighted = selectedSceneId === scene.id || selectedSceneId === target.id;
-                    
-                    return (
-                      <path 
-                        key={`${scene.id}-${choice.id}-${action.id}`}
-                        d={`M ${scene.position.x + NODE_WIDTH/2} ${scene.position.y + 100} C ${scene.position.x + NODE_WIDTH/2} ${scene.position.y + 160}, ${target.position.x + NODE_WIDTH/2} ${target.position.y - 50}, ${target.position.x + NODE_WIDTH/2} ${target.position.y}`}
-                        stroke={isHighlighted ? "#6366f1" : "#1e293b"} 
-                        strokeWidth={isHighlighted ? "3" : "1.5"}
-                        fill="none"
-                        markerEnd={isHighlighted ? "url(#arrowhead-active)" : "url(#arrowhead)"}
-                        className="transition-all duration-300"
-                      />
-                    );
-                  })
-                )
-              )}
+              {edges.map(({ id, sourceScene, targetScene }) => {
+                const isHighlighted = selectedSceneId === sourceScene.id || selectedSceneId === targetScene.id;
+
+                return (
+                  <path
+                    key={id}
+                    d={`M ${sourceScene.position.x + NODE_WIDTH/2} ${sourceScene.position.y + 100} C ${sourceScene.position.x + NODE_WIDTH/2} ${sourceScene.position.y + 160}, ${targetScene.position.x + NODE_WIDTH/2} ${targetScene.position.y - 50}, ${targetScene.position.x + NODE_WIDTH/2} ${targetScene.position.y}`}
+                    stroke={isHighlighted ? "#6366f1" : "#1e293b"}
+                    strokeWidth={isHighlighted ? "3" : "1.5"}
+                    fill="none"
+                    markerEnd={isHighlighted ? "url(#arrowhead-active)" : "url(#arrowhead)"}
+                    className="transition-all duration-300"
+                  />
+                );
+              })}
 
               {connectingFromId && (
                 <line 
-                  x1={(project.scenes.find(s => s.id === connectingFromId)?.position.x || 0) + (NODE_WIDTH - 20)}
-                  y1={(project.scenes.find(s => s.id === connectingFromId)?.position.y || 0) + 120}
+                  x1={((sceneMap.get(connectingFromId))?.position.x || 0) + (NODE_WIDTH - 20)}
+                  y1={((sceneMap.get(connectingFromId))?.position.y || 0) + 120}
                   x2={mousePos.x}
                   y2={mousePos.y}
                   stroke="#6366f1"
