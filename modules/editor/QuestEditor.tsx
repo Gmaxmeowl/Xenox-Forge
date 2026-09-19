@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useStore } from '../../store/useStore';
 import { translations } from '../../translations';
 import { Quest, QuestStage, RuleAction, RuleCondition, ActionType, ConditionOperator, ConditionType } from '../../types';
@@ -19,6 +19,9 @@ const QuestEditor: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const q = project.quests.find(item => item.id === selectedQuestId);
   const [editingStageId, setEditingStageId] = useState<string | null>(null);
+
+  // Memoized stage Map for O(1) lookups during edge rendering and stage inspector
+  const stageMap = useMemo(() => new Map((q?.stages || []).map(s => [s.id, s])), [q?.stages]);
   const [snapToGrid, setSnapToGrid] = useState(true);
 
   // Graph logic
@@ -243,7 +246,7 @@ const QuestEditor: React.FC = () => {
                    </defs>
                    {q.stages.flatMap(stage => 
                       stage.nextStageIds.map(targetId => {
-                        const target = q.stages.find(s => s.id === targetId);
+                        const target = stageMap.get(targetId);
                         if (!target) return null;
                         return (
                           <path 
@@ -304,7 +307,7 @@ const QuestEditor: React.FC = () => {
                 </div>
 
                 {(() => {
-                   const stage = q.stages.find(s => s.id === editingStageId);
+                   const stage = stageMap.get(editingStageId || '');
                    if (!stage) return null;
                    return (
                       <div className="space-y-8 pb-10">
