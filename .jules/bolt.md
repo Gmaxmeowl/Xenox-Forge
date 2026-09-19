@@ -1,0 +1,4 @@
+## 2026-09-19 - Map-based lookup optimization for graph position updates and SVG edge rendering
+
+**Learning:** Bulk state updates for node positions (`updateScenesPositions`, `updateQuestStagesPositions`) used `Array.prototype.find()` inside `.map()`, causing $O(N \times U)$ complexity during canvas drag operations on every `mousemove` frame. Additionally, SVG edge rendering in `GraphView.tsx` and `QuestEditor.tsx` used `.find()` for every choice/transition edge on every render frame. Converting both to Map lookups reduced position update overhead from ~10.4s to ~497ms (~21x speedup) and edge rendering overhead from ~1.29s to ~91ms (~14x speedup).
+**Action:** When updating collections in Zustand stores or rendering canvas edges in React, always map IDs to objects/positions using `Map` (`if (!map.has(key)) map.set(key, val)`) to maintain $O(N + U)$ complexity and exact semantic equivalence with `find()`.
