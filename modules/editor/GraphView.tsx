@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useStore } from '../../store/useStore';
 import { 
   Magnet, Undo2, Redo2, GitMerge, Plus, Star, Settings2, X, Layers
@@ -31,6 +31,12 @@ const GraphView: React.FC = () => {
   const [connectingFromId, setConnectingFromId] = useState<string | null>(null);
   const [mousePos, setMousePos] = useState<Point>({ x: 0, y: 0 });
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+
+  // Performance optimization: Memoize scenes map for O(1) scene lookup when rendering SVG edges.
+  // Replaces linear O(N) array search (.find) inside edge loops with constant-time Map lookup.
+  const sceneMap = useMemo(() => {
+    return new Map(project.scenes.map(s => [s.id, s]));
+  }, [project.scenes]);
 
   const dragInfo = useRef<{
     startX: number;
@@ -175,7 +181,7 @@ const GraphView: React.FC = () => {
               {project.scenes.flatMap(scene => 
                 (scene.choices || []).flatMap(choice => 
                   (choice.actions || []).filter(a => a.type === 'change_scene').map(action => {
-                    const target = project.scenes.find(s => s.id === action.targetId);
+                    const target = sceneMap.get(action.targetId);
                     if (!target) return null;
                     const isHighlighted = selectedSceneId === scene.id || selectedSceneId === target.id;
                     
