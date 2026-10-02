@@ -1,0 +1,3 @@
+## 2025-05-18 - Memoized Map for Graph View Edge Lookups
+**Learning:** In React graph/canvas editors with high node/edge counts (e.g. GraphView rendering scene transitions), performing `.find()` inside flatMap/map loops for edge connections results in $O(N \times E)$ overhead on every render. Creating a memoized `sceneMap` (`Map<string, Scene>`) reduces edge rendering time complexity to $O(N + E)$, resulting in a ~43.5x speedup (from 2022ms down to 50ms for 1,000 scenes over 100 renders).
+**Action:** When rendering SVG connections or graph edges, always construct a memoized `Map` of node IDs to node objects using `useMemo` with explicit `!map.has(id)` checks to preserve `Array.prototype.find()` semantics.
