@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useStore } from '../../store/useStore';
 import { 
   Magnet, Undo2, Redo2, GitMerge, Plus, Star, Settings2, X, Layers
@@ -31,6 +31,9 @@ const GraphView: React.FC = () => {
   const [connectingFromId, setConnectingFromId] = useState<string | null>(null);
   const [mousePos, setMousePos] = useState<Point>({ x: 0, y: 0 });
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+
+  // Memoize scene lookups to convert O(N*E) edge rendering lookups into O(N + E)
+  const sceneMap = useMemo(() => new Map(project.scenes.map(s => [s.id, s])), [project.scenes]);
 
   const dragInfo = useRef<{
     startX: number;
@@ -175,7 +178,8 @@ const GraphView: React.FC = () => {
               {project.scenes.flatMap(scene => 
                 (scene.choices || []).flatMap(choice => 
                   (choice.actions || []).filter(a => a.type === 'change_scene').map(action => {
-                    const target = project.scenes.find(s => s.id === action.targetId);
+                    // Optimized O(1) Map lookup instead of O(N) Array.find
+                    const target = sceneMap.get(action.targetId);
                     if (!target) return null;
                     const isHighlighted = selectedSceneId === scene.id || selectedSceneId === target.id;
                     
