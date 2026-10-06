@@ -1,0 +1,3 @@
+## 2025-05-18 - Memoized Map Lookups in Graph View Edge Rendering
+**Learning:** In interactive graph editors (like `GraphView.tsx`), SVG edge rendering maps over nested choices/actions and performs linear `Array.prototype.find()` lookups on the target nodes. On every frame/re-render (e.g. mouse movement or node dragging), this scales at $O(N^2)$ relative to node count $N$. Converting target searches to a memoized `Map` (`sceneMap`) using `if (!map.has(key)) map.set(...)` guarantees $O(1)$ lookups per edge while preserving `Array.prototype.find()` first-match semantics.
+**Action:** When rendering connection lines or handling drag interactions over node collections, memoize an id-to-object Map to avoid $O(N^2)$ render bottlenecks.
