@@ -1,0 +1,3 @@
+## 2025-05-18 - Preserving exact Array.prototype.find semantics during Map lookup optimizations
+**Learning:** When refactoring bulk update operations from $O(N \times U)$ nested `Array.prototype.find()` to an $O(N + U)$ `Map` lookup, constructing a Map via `new Map(array.map(...))` or simple iteration overwrites previous entries with later occurrences. To maintain strict behavioral identity with `.find()` (which returns the *first* matching element), `Map` construction must explicitly guard against overwrites using `if (!map.has(key)) map.set(key, value)`.
+**Action:** Always check duplicate key semantics when replacing nested searches with Hash Maps.
