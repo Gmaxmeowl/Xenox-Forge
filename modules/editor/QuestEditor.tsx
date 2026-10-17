@@ -21,6 +21,17 @@ const QuestEditor: React.FC = () => {
   const [editingStageId, setEditingStageId] = useState<string | null>(null);
   const [snapToGrid, setSnapToGrid] = useState(true);
 
+  // Memoized stage map for O(1) stage lookups during rendering and mouse handlers
+  const stageMap = React.useMemo(() => {
+    const map = new Map<string, QuestStage>();
+    if (q?.stages) {
+      for (const stage of q.stages) {
+        if (!map.has(stage.id)) map.set(stage.id, stage);
+      }
+    }
+    return map;
+  }, [q?.stages]);
+
   // Graph logic
   const graphRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -33,7 +44,7 @@ const QuestEditor: React.FC = () => {
 
   const handleStageMouseDown = (e: React.MouseEvent, stageId: string) => {
     e.stopPropagation();
-    const stage = q?.stages.find(s => s.id === stageId);
+    const stage = stageMap.get(stageId);
     if (!stage) return;
     
     dragInfo.current = {
@@ -243,7 +254,7 @@ const QuestEditor: React.FC = () => {
                    </defs>
                    {q.stages.flatMap(stage => 
                       stage.nextStageIds.map(targetId => {
-                        const target = q.stages.find(s => s.id === targetId);
+                        const target = stageMap.get(targetId);
                         if (!target) return null;
                         return (
                           <path 
