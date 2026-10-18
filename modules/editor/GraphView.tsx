@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useStore } from '../../store/useStore';
 import { 
   Magnet, Undo2, Redo2, GitMerge, Plus, Star, Settings2, X, Layers
@@ -37,6 +37,12 @@ const GraphView: React.FC = () => {
     startY: number;
     initialPositions: Map<string, Point>;
   } | null>(null);
+
+  // Performance Optimization: Create a memoized map of scene ID to Scene object.
+  // Reduces target scene lookup from O(N) to O(1) during SVG edge rendering and drag/connecting interactions.
+  const sceneMap = useMemo(() => {
+    return new Map(project.scenes.map(s => [s.id, s]));
+  }, [project.scenes]);
 
   const getMousePos = (e: MouseEvent | React.MouseEvent): Point => {
     if (!containerRef.current) return { x: 0, y: 0 };
@@ -175,7 +181,8 @@ const GraphView: React.FC = () => {
               {project.scenes.flatMap(scene => 
                 (scene.choices || []).flatMap(choice => 
                   (choice.actions || []).filter(a => a.type === 'change_scene').map(action => {
-                    const target = project.scenes.find(s => s.id === action.targetId);
+                    // Optimized O(1) scene lookup via sceneMap instead of Array.prototype.find (O(N))
+                    const target = sceneMap.get(action.targetId);
                     if (!target) return null;
                     const isHighlighted = selectedSceneId === scene.id || selectedSceneId === target.id;
                     
@@ -196,8 +203,8 @@ const GraphView: React.FC = () => {
 
               {connectingFromId && (
                 <line 
-                  x1={(project.scenes.find(s => s.id === connectingFromId)?.position.x || 0) + (NODE_WIDTH - 20)}
-                  y1={(project.scenes.find(s => s.id === connectingFromId)?.position.y || 0) + 120}
+                  x1={(sceneMap.get(connectingFromId)?.position.x || 0) + (NODE_WIDTH - 20)}
+                  y1={(sceneMap.get(connectingFromId)?.position.y || 0) + 120}
                   x2={mousePos.x}
                   y2={mousePos.y}
                   stroke="#6366f1"
