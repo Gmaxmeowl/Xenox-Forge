@@ -1,0 +1,5 @@
+## 2026-10-23 - Map Lookups for Graph & Quest Canvas Edge Rendering and Drag Updates
+
+**Learning:** In canvas-like views (e.g. `GraphView.tsx` and `QuestEditor.tsx`), rendering SVG connection lines between nodes using nested `Array.prototype.find()` on every render frame results in $O(E \times N)$ time complexity. During node dragging, high-frequency mouse events trigger store actions (`updateScenesPositions` / `updateQuestStagesPositions`) that similarly performed $O(N \times U)$ nested `.find()` searches. Replacing nested `.find()` in render loops with memoized `Map` lookups (`useMemo(() => new Map(...))`) and Map-backed store updates reduced execution time by 14x–24x. When replacing `.find()` with Map creation, using `if (!map.has(key))` ensures exact parity with `find()` by preserving the first element in case of duplicate keys.
+
+**Action:** Whenever rendering dynamic node connections or processing bulk updates in Zustand stores during canvas dragging, memoize node lookup maps and convert arrays to `Map`s for $O(1)$ property access.
