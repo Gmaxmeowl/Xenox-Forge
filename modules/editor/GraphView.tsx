@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useStore } from '../../store/useStore';
 import { 
   Magnet, Undo2, Redo2, GitMerge, Plus, Star, Settings2, X, Layers
@@ -31,6 +31,18 @@ const GraphView: React.FC = () => {
   const [connectingFromId, setConnectingFromId] = useState<string | null>(null);
   const [mousePos, setMousePos] = useState<Point>({ x: 0, y: 0 });
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+
+  // BOLT OPTIMIZATION: Memoize scene lookup map O(N) -> O(1) for edge rendering.
+  // Stores only the first occurrence for duplicate IDs to match Array.prototype.find semantics.
+  const sceneMap = useMemo(() => {
+    const map = new Map<string, typeof project.scenes[0]>();
+    for (const scene of project.scenes) {
+      if (!map.has(scene.id)) {
+        map.set(scene.id, scene);
+      }
+    }
+    return map;
+  }, [project.scenes]);
 
   const dragInfo = useRef<{
     startX: number;
@@ -175,7 +187,8 @@ const GraphView: React.FC = () => {
               {project.scenes.flatMap(scene => 
                 (scene.choices || []).flatMap(choice => 
                   (choice.actions || []).filter(a => a.type === 'change_scene').map(action => {
-                    const target = project.scenes.find(s => s.id === action.targetId);
+                    // BOLT OPTIMIZATION: O(1) lookup via memoized sceneMap instead of O(N) .find()
+                    const target = sceneMap.get(action.targetId);
                     if (!target) return null;
                     const isHighlighted = selectedSceneId === scene.id || selectedSceneId === target.id;
                     
@@ -196,8 +209,8 @@ const GraphView: React.FC = () => {
 
               {connectingFromId && (
                 <line 
-                  x1={(project.scenes.find(s => s.id === connectingFromId)?.position.x || 0) + (NODE_WIDTH - 20)}
-                  y1={(project.scenes.find(s => s.id === connectingFromId)?.position.y || 0) + 120}
+                  x1={(sceneMap.get(connectingFromId)?.position.x || 0) + (NODE_WIDTH - 20)}
+                  y1={(sceneMap.get(connectingFromId)?.position.y || 0) + 120}
                   x2={mousePos.x}
                   y2={mousePos.y}
                   stroke="#6366f1"
