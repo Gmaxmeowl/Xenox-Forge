@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useStore } from '../../store/useStore';
 import { 
   Magnet, Undo2, Redo2, GitMerge, Plus, Star, Settings2, X, Layers
@@ -23,6 +23,18 @@ const GraphView: React.FC = () => {
   const addScene = useStore(s => s.addScene);
   const updateScene = useStore(s => s.updateScene);
   
+  // Memoize scene map for O(1) lookups during graph edge and connecting line rendering.
+  // Replaces O(N) array scans with O(1) lookups, preventing O(N * E) bottleneck on large graphs.
+  const sceneMap = useMemo(() => {
+    const map = new Map<string, typeof project.scenes[0]>();
+    for (const scene of project.scenes) {
+      if (!map.has(scene.id)) {
+        map.set(scene.id, scene);
+      }
+    }
+    return map;
+  }, [project.scenes]);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [snapToGrid, setSnapToGrid] = useState(true);
@@ -175,7 +187,8 @@ const GraphView: React.FC = () => {
               {project.scenes.flatMap(scene => 
                 (scene.choices || []).flatMap(choice => 
                   (choice.actions || []).filter(a => a.type === 'change_scene').map(action => {
-                    const target = project.scenes.find(s => s.id === action.targetId);
+                    // O(1) map lookup instead of O(N) project.scenes.find
+                    const target = sceneMap.get(action.targetId as string);
                     if (!target) return null;
                     const isHighlighted = selectedSceneId === scene.id || selectedSceneId === target.id;
                     
@@ -196,8 +209,8 @@ const GraphView: React.FC = () => {
 
               {connectingFromId && (
                 <line 
-                  x1={(project.scenes.find(s => s.id === connectingFromId)?.position.x || 0) + (NODE_WIDTH - 20)}
-                  y1={(project.scenes.find(s => s.id === connectingFromId)?.position.y || 0) + 120}
+                  x1={((sceneMap.get(connectingFromId)?.position.x || 0)) + (NODE_WIDTH - 20)}
+                  y1={((sceneMap.get(connectingFromId)?.position.y || 0)) + 120}
                   x2={mousePos.x}
                   y2={mousePos.y}
                   stroke="#6366f1"
