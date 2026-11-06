@@ -2,9 +2,9 @@
 import { 
   Package, Users, Settings, X, ShieldAlert, Volume2, ArrowRight, RefreshCw, VolumeX, Save, Loader2, Mic2, Square, Lock
 } from 'lucide-react';
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useStore } from '../../store/useStore';
-import { Choice } from '../../types';
+import { Choice, Item, Character } from '../../types';
 import { GoogleGenAI, Modality } from "@google/genai";
 
 function decodeBase64(base64: string) {
@@ -61,6 +61,30 @@ const PlayerEngine: React.FC = () => {
   const scene = project?.scenes?.find(s => s.id === gameState?.currentSceneId);
   const isPublished = project?.settings?.isPublished;
 
+  // Performance Optimization: Memoize character lookup Map (O(1)) instead of running
+  // O(C) Array.prototype.find on every condition evaluation in checkChoiceAvailability.
+  const characterMap = useMemo(() => {
+    const map = new Map<string, Character>();
+    for (const char of project?.characters || []) {
+      if (!map.has(char.id)) {
+        map.set(char.id, char);
+      }
+    }
+    return map;
+  }, [project?.characters]);
+
+  // Performance Optimization: Memoize item lookup Map (O(1)) to prevent O(I * N) nested
+  // linear searches when rendering inventory items in the player HUD.
+  const itemMap = useMemo(() => {
+    const map = new Map<string, Item>();
+    for (const item of project?.items || []) {
+      if (!map.has(item.id)) {
+        map.set(item.id, item);
+      }
+    }
+    return map;
+  }, [project?.items]);
+
   const checkChoiceAvailability = useCallback((choice: Choice) => {
     if (!gameState) return { ok: false, reason: '' };
     const results = (choice.conditions || []).map(cond => {
@@ -75,7 +99,7 @@ const PlayerEngine: React.FC = () => {
         case 'item':
           return cond.operator === 'has' ? gameState.inventory.includes(cond.targetId || '') : !gameState.inventory.includes(cond.targetId || '');
         case 'relationship':
-          const char = project.characters.find(c => c.id === cond.targetId);
+          const char = characterMap.get(cond.targetId || '');
           const rel = gameState.relationships[cond.targetId || ''] ?? (char?.initialRelationship || 0);
           if (cond.operator === 'eq') return rel == targetVal;
           if (cond.operator === 'gt') return rel > Number(targetVal);
@@ -92,7 +116,7 @@ const PlayerEngine: React.FC = () => {
     });
     const ok = choice.logicOperator === 'OR' ? results.length === 0 || results.some(r => r) : results.every(r => r);
     return { ok, reason: '' };
-  }, [gameState, project.characters]);
+  }, [gameState, characterMap]);
 
   const handleChoice = useCallback((choice: Choice) => {
     if (isTyping) {
@@ -262,7 +286,7 @@ const PlayerEngine: React.FC = () => {
                  {activeWindow === 'inventory' && (
                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                      {gameState.inventory.map(itemId => {
-                       const item = project.items.find(i => i.id === itemId);
+                       const item = itemMap.get(itemId);
                        if (!item) return null;
                        return (
                          <div key={itemId} className="p-6 bg-white/5 border border-white/10 rounded-3xl flex flex-col items-center gap-4">
