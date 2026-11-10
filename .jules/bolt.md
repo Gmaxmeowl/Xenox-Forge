@@ -1,0 +1,3 @@
+## 2025-05-18 - Memoized Scene Map for GraphView Edge Lookups
+**Learning:** In interactive graph editors like `GraphView.tsx`, SVG edge curves and drag connections re-render on every mouse movement. Using `project.scenes.find(s => s.id === action.targetId)` inside nested loops (`scenes -> choices -> actions`) results in $O(N^2 \cdot C)$ linear scanning operations on every mouse event, causing severe frame drops. Replacing `.find()` with a top-level memoized `sceneMap` (`Map<string, Scene>`) drops complexity to $O(N)$ map construction and $O(1)$ per edge lookup.
+**Action:** Always index node and vertex entities in a `useMemo`'d Map in graph/flow components where edges recompute coordinates on drag/connect events.
