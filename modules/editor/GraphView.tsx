@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useStore } from '../../store/useStore';
 import { 
   Magnet, Undo2, Redo2, GitMerge, Plus, Star, Settings2, X, Layers
@@ -37,6 +37,23 @@ const GraphView: React.FC = () => {
     startY: number;
     initialPositions: Map<string, Point>;
   } | null>(null);
+
+  /**
+   * Performance optimization: Index scenes by ID in an O(N) pass with useMemo.
+   * GraphView re-renders frequently (e.g. during dragging or line connecting).
+   * In edge rendering, performing `project.scenes.find(s => s.id === action.targetId)`
+   * for each choice action yields O(N * C * N) = O(N^2 * C) total complexity.
+   * With `sceneMap`, lookup is O(1), reducing edge rendering to O(N * C).
+   */
+  const sceneMap = useMemo(() => {
+    const map = new Map<string, (typeof project.scenes)[0]>();
+    for (const scene of project.scenes) {
+      if (!map.has(scene.id)) {
+        map.set(scene.id, scene);
+      }
+    }
+    return map;
+  }, [project.scenes]);
 
   const getMousePos = (e: MouseEvent | React.MouseEvent): Point => {
     if (!containerRef.current) return { x: 0, y: 0 };
@@ -116,7 +133,7 @@ const GraphView: React.FC = () => {
     selectScene(sceneId);
 
     const initialPositions = new Map<string, Point>();
-    const s = project.scenes.find(sc => sc.id === sceneId);
+    const s = sceneMap.get(sceneId);
     if (s) initialPositions.set(sceneId, { ...s.position });
 
     dragInfo.current = { startX: pos.x, startY: pos.y, initialPositions };
@@ -175,7 +192,7 @@ const GraphView: React.FC = () => {
               {project.scenes.flatMap(scene => 
                 (scene.choices || []).flatMap(choice => 
                   (choice.actions || []).filter(a => a.type === 'change_scene').map(action => {
-                    const target = project.scenes.find(s => s.id === action.targetId);
+                    const target = action.targetId ? sceneMap.get(action.targetId) : undefined;
                     if (!target) return null;
                     const isHighlighted = selectedSceneId === scene.id || selectedSceneId === target.id;
                     
@@ -194,18 +211,21 @@ const GraphView: React.FC = () => {
                 )
               )}
 
-              {connectingFromId && (
-                <line 
-                  x1={(project.scenes.find(s => s.id === connectingFromId)?.position.x || 0) + (NODE_WIDTH - 20)}
-                  y1={(project.scenes.find(s => s.id === connectingFromId)?.position.y || 0) + 120}
-                  x2={mousePos.x}
-                  y2={mousePos.y}
-                  stroke="#6366f1"
-                  strokeWidth="3"
-                  strokeDasharray="5,5"
-                  className="animate-[dash_1s_linear_infinite]"
-                />
-              )}
+              {connectingFromId && (() => {
+                const source = sceneMap.get(connectingFromId);
+                return (
+                  <line
+                    x1={(source?.position.x || 0) + (NODE_WIDTH - 20)}
+                    y1={(source?.position.y || 0) + 120}
+                    x2={mousePos.x}
+                    y2={mousePos.y}
+                    stroke="#6366f1"
+                    strokeWidth="3"
+                    strokeDasharray="5,5"
+                    className="animate-[dash_1s_linear_infinite]"
+                  />
+                );
+              })()}
             </svg>
 
             {project.scenes.map(scene => {
